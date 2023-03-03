@@ -1,0 +1,13 @@
+Type, Arg1, Arg2, Arg3
+
+Task, Tanken
+Activity, Tanken, BezahlenBar, 5
+Activity, Tanken, BezahlenKarte, 2
+Activity, Tanken, TankdeckelZuMachen, 1
+Activity, Tanken, LosFahren, 2
+
+Mutex, M1, BezahlenBar, BezahlenKarte
+
+Semaphore, S2, BezahlenKarte, LosFahren
+Semaphore, S2, BezahlenBar, LosFahren
+Semaphore, S3, TankdeckelZuMachen, LosFahren

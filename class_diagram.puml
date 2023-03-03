@@ -1,0 +1,67 @@
+@startuml
+
+class Task{
+  {field} activities : List<Activity>
+}
+
+class Activity{
+  {field} inputs : List<ILockable>
+  {field} outputs : List<ILockable>
+  {field} process_duration : Integer
+  {field} process_time : Integer
+  {field} can_process : Boolean
+  {method} void consume()
+  {method} void process()
+  {method} bool is_active() { return process_time > 0;}
+}
+note left: Mutex has to be in inputs AND outputs
+
+note top of Activity
+void consume(){
+  if(process_time == 0) # not in process
+  {
+    for (input : inputs){
+      can_process = input.can_decrement()
+      if(!can_process) return;
+    }
+    for (input : inputs) input.decrement();
+  }
+}
+end note
+
+note top of Activity
+void process(){
+  if(process_time > 0 || can_process) {
+    process_time++;
+  }
+  if(process_time == process_duration){
+    for(output : outputs) output.increment;
+    process_time = 0;
+  }
+  can_process = false;
+}
+end note
+
+
+interface ILockable{
+  {method} void increment()
+  {method} void decrement()
+  {method} bool can_decrement()
+}
+
+class Semaphore{
+  {field} state : Integer
+  {field} numberInputs : Integer
+  {field} isActivitySemaphore : Boolean
+  {method} Semaphore(int state = 1)
+}
+
+class Mutex{
+  {field} state : Integer
+}
+
+ILockable <|-- Semaphore
+ILockable <|-- Mutex
+
+
+@enduml

@@ -25,29 +25,29 @@ public class Activity
     }
 
 
-    void consume()
+    public void Consume()
     {
         if(_processTime == 0){
             foreach(ISemaphoreOperations input in _inputs){
-                _canProcess = input.canDecrement();
+                _canProcess = input.CanDecrement();
                 if(_canProcess == false) return;
             }
-            foreach(ISemaphoreOperations input in _inputs) input.decrement();
+            foreach(ISemaphoreOperations input in _inputs) input.Decrement();
         }
     }
 
 
-    void process()
+    public void Process()
     {
         if(_processTime > 0 || _canProcess) _processTime++;
         if(_processTime == _processDuration)
         {
-            foreach(ISemaphoreOperations output in _outputs) output.increment();
+            foreach(ISemaphoreOperations output in _outputs) output.Increment();
             _processTime = 0;
         }
         _canProcess = false;
     }
 
-    bool isActive() => _processTime > 0;
+    public bool IsActive() => _processTime > 0;
 
 }

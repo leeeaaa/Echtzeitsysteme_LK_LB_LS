@@ -1,8 +1,8 @@
 namespace BlazorApp.Data;
 
-public class CSVFileReaderService {
+public class CsvFileReaderService {
 
-    void ReadCSVFileToObject(string csvFilePath){
+    void ReadCsvFileToObject(string csvFilePath){
         using(var reader = new StreamReader(csvFilePath)){
             
         }

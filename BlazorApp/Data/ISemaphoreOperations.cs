@@ -3,10 +3,10 @@ namespace BlazorApp.Data;
 public interface ISemaphoreOperations
 {
 
-    void increment();
+    void Increment();
 
-    void decrement();
+    void Decrement();
 
-    bool canDecrement();
+    bool CanDecrement();
 
 }

@@ -11,7 +11,7 @@ public class Task
         _name = name;
     }
 
-    public IList<Activity> getActivities(){
+    public IList<Activity> GetActivities(){
         return _activities;
     }
 }

@@ -13,17 +13,17 @@ public class Semaphore : ISemaphoreOperations
         _numberInputs = numberInputs;
     }
 
-    public bool canDecrement()
+    public bool CanDecrement()
     {
         return _state > 0;
     }
 
-    public void decrement()
+    public void Decrement()
     {
         _state--;
     }
 
-    public void increment()
+    public void Increment()
     {
         _state++;
     }

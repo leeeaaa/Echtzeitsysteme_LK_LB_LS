@@ -10,7 +10,7 @@ public class Activity
 
     private int _processTime;
 
-    private bool _canProcess = false;
+    public bool CanProcess { get; private set; } = false;
 
     private readonly string _name;
 
@@ -29,8 +29,8 @@ public class Activity
     {
         if(_processTime == 0){
             foreach(ISemaphoreOperations input in _inputs){
-                _canProcess = input.CanDecrement();
-                if(_canProcess == false) return;
+                CanProcess = input.CanDecrement();
+                if(CanProcess == false) return;
             }
             foreach(ISemaphoreOperations input in _inputs) input.Decrement();
         }
@@ -39,13 +39,13 @@ public class Activity
 
     public void Process()
     {
-        if(_processTime > 0 || _canProcess) _processTime++;
+        if(_processTime > 0 || CanProcess) _processTime++;
         if(_processTime == _processDuration)
         {
             foreach(ISemaphoreOperations output in _outputs) output.Increment();
             _processTime = 0;
         }
-        _canProcess = false;
+        CanProcess = false;
     }
 
     public bool IsActive() => _processTime > 0;

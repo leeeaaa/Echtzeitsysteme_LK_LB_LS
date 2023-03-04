@@ -2,16 +2,35 @@ namespace BlazorApp.Data;
 
 public class Semaphore : ISemaphoreOperations
 {
-    private int _state;
-    private readonly bool _isActivitySemaphore;
 
-    private readonly int _numberInputs;
-
-    public Semaphore(int state, bool isActivitySemaphore, int numberInputs){
-        _state = state;
-        _isActivitySemaphore = isActivitySemaphore;
-        _numberInputs = numberInputs;
+    public string Name {
+        get;
+        private set;
     }
+
+    private int _state;
+    public bool IsActivitySemaphore{
+        get;
+        private set;
+    }
+
+    public int NumberInputs {
+        get;
+        private set;
+    }
+
+    public Semaphore(int state, string name) : this(state, false, 1, name){}
+
+    public Semaphore(int state, bool isActivitySemaphore, int numberInputs, string name){
+        _state = state;
+        IsActivitySemaphore = isActivitySemaphore;
+        NumberInputs = numberInputs;
+        Name = name;
+    }
+
+    public void IncrementNumberInputs() => NumberInputs++;
+
+    public void SetActivitySemaphore() => IsActivitySemaphore = true;
 
     public bool CanDecrement()
     {

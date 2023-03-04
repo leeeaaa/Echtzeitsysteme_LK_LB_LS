@@ -2,16 +2,26 @@ namespace BlazorApp.Data;
 
 public class Task
 {
-    private readonly IList<Activity> _activities;
+    public IList<Activity> Activities {
+        get;
+        private set;
+    } 
 
-    private readonly string _name;
+    public string Name {
+        get;
+        private set;
+    }
+
+
+    public Task(string name): this(new List<Activity>(), name){}
+
 
     public Task(IList<Activity> activities, string name){
-        _activities = activities;
-        _name = name;
+        Activities = activities;
+        Name = name;
     }
 
-    public IList<Activity> GetActivities(){
-        return _activities;
-    }
+    public void AddActivity(Activity activity) => Activities.Add(activity);
+
+
 }

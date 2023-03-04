@@ -2,37 +2,53 @@ namespace BlazorApp.Data;
 
 public class Activity 
 {
-    private readonly IList<ISemaphoreOperations> _inputs;
+    public List<ISemaphoreOperations> Inputs {
+        get;
+        private set;
+    }
 
-    private readonly IList<ISemaphoreOperations> _outputs;
+    public List<ISemaphoreOperations> Outputs {
+        get;
+        private set;
+    }
 
     private readonly int _processDuration;
 
-    private int _processTime;
+    private int _processTime = 0;
 
     public bool CanProcess { get; private set; } = false;
 
-    private readonly string _name;
-
-    public Activity(IList<ISemaphoreOperations> inputs, IList<ISemaphoreOperations> outputs,
-        int processDuration, int processTime, string name)
-    {
-        _inputs = inputs;
-        _outputs = outputs;
-        _processDuration = processDuration;
-        _processTime = processTime;
-        _name = name;
+    public string Name {
+        get;
+        private set;
     }
 
+    public Activity(int processDuration, string name) 
+        : this(new(), new(), processDuration, name){}
+
+    public Activity(List<ISemaphoreOperations> inputs, List<ISemaphoreOperations> outputs,
+        int processDuration, string name)
+    {
+        Inputs = inputs;
+        Outputs = outputs;
+        _processDuration = processDuration;
+        Name = name;
+    }
+
+
+    public void AddInput(ISemaphoreOperations input) => Inputs.Add(input);
+
+    public void AddOutput(ISemaphoreOperations output) => Outputs.Add(output);
 
     public void Consume()
     {
         if(_processTime == 0){
-            foreach(ISemaphoreOperations input in _inputs){
+            Inputs.ForEach(input => {
                 CanProcess = input.CanDecrement();
                 if(CanProcess == false) return;
-            }
-            foreach(ISemaphoreOperations input in _inputs) input.Decrement();
+            });
+
+            Inputs.ForEach(input => input.Decrement());
         }
     }
 
@@ -42,7 +58,7 @@ public class Activity
         if(_processTime > 0 || CanProcess) _processTime++;
         if(_processTime == _processDuration)
         {
-            foreach(ISemaphoreOperations output in _outputs) output.Increment();
+            Outputs.ForEach(output => output.Increment());
             _processTime = 0;
         }
         CanProcess = false;

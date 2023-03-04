@@ -3,10 +3,15 @@ namespace BlazorApp.Data;
 public class Mutex : ISemaphoreOperations
 {
 
+    public string Name {
+        get;
+        private set;
+    }
+
     private int _state = 1;
 
-    public Mutex(){
-
+    public Mutex(string name){
+        Name = name;
     }
 
     public bool CanDecrement()

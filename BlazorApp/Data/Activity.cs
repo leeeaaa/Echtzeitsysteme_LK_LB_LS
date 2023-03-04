@@ -22,10 +22,7 @@ public class Activity
         _processDuration = processDuration;
         _processTime = processTime;
         _name = name;
-
     }
-
-    public bool getCanProcess() => _canProcess;
 
 
     void consume()
@@ -45,7 +42,8 @@ public class Activity
         if(_processTime > 0 || _canProcess) _processTime++;
         if(_processTime == _processDuration)
         {
-            foreach(ISemaphoreOperations output in _outputs) output.decrement();
+            foreach(ISemaphoreOperations output in _outputs) output.increment();
+            _processTime = 0;
         }
         _canProcess = false;
     }

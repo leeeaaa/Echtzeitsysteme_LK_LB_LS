@@ -24,24 +24,24 @@ public class CsvFileReaderService
 			var existingSemaphore = semaphores.Find(semaphore => semaphore.Name == semaphoreList[1]);
 			if (existingSemaphore is null)
 			{
-				var semaphore = CreateSemaphoreFromList(semaphoreList);
-				var outputActivity = activities.Find(activity => activity.Name == semaphoreList[3]);
-				outputActivity?.AddOutput(semaphore);
-				var inputActivity = activities.Find(activitiy => activitiy.Name == semaphoreList[4]);
-				inputActivity?.AddInput(semaphore);
-
-				if (inputActivity != null && outputActivity != null)
-				{
-					if (tasks.Find(task =>
-							task.Activities.Contains(inputActivity) && task.Activities.Contains(outputActivity)) !=
-						null) semaphore.SetActivitySemaphore();
-				}
-
-				semaphores.Add(semaphore);
+				existingSemaphore = CreateSemaphoreFromList(semaphoreList);
+				semaphores.Add(existingSemaphore);
 			}
 			else
 			{
 				existingSemaphore.IncrementNumberInputs();
+			}
+
+			var outputActivity = activities.Find(activity => activity.Name == semaphoreList[3]);
+			outputActivity?.AddOutput(existingSemaphore);
+			var inputActivity = activities.Find(activitiy => activitiy.Name == semaphoreList[4]);
+			inputActivity?.AddInput(existingSemaphore);
+
+			if (inputActivity != null && outputActivity != null)
+			{
+				if (tasks.Find(task =>
+					    task.Activities.Contains(inputActivity) && task.Activities.Contains(outputActivity)) !=
+				    null) existingSemaphore.SetActivitySemaphore();
 			}
 		});
 

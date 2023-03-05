@@ -1,6 +1,27 @@
-Task, Tanken,,,
-Activity, Tanken, BezahlenKarte,1
-Activity, Tanken, LosFahren,1
-Mutex, M1, LosFahren, BezahlenKarte
-Semaphore, S2,2, BezahlenKarte, LosFahren
-Semaphore, S3,0, LosFahren, BezahlenKarte
+Task, Task1
+Task, Task2
+Task, Task3
+Task, Task4
+Task, Task5
+Task, Task6
+Task, Task7
+Activity, Task1, Activitiy1, 1
+Activity, Task2, Activitiy2, 1
+Activity, Task3, Activitiy3, 1
+Activity, Task4, Activitiy4, 1
+Activity, Task5, Activitiy5-a, 1
+Activity, Task5, Activitiy5-b, 1
+Activity, Task6, Activitiy6, 1
+Activity, Task7, Activitiy7, 1
+Mutex, m234, Activitiy2, Activitiy3, Activitiy4
+Semaphore, S51, 1, Activitiy5-a, Activitiy1
+Semaphore, S12, 0, Activitiy1, Activitiy2
+Semaphore, S13, 0, Activitiy1, Activitiy3
+Semaphore, S24, 0, Activitiy2, Activitiy4
+Semaphore, S36, 0, Activitiy3, Activitiy6
+Semaphore, S46, 0, Activitiy4, Activitiy6
+Semaphore, S56, 0, Activitiy6, Activitiy5-a
+Semaphore, S5b-a, 1, Activitiy5-b, Activitiy5-a
+Semaphore, S5a-b, 0, Activitiy5-a, Activitiy5-b
+Semaphore, S7, 0, Activitiy5-a, Activitiy7
+Semaphore, S7, 0, Activitiy6, Activitiy7

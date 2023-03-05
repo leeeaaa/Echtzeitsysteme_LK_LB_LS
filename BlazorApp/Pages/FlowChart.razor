@@ -1,0 +1,103 @@
+﻿@page "/flowchart"
+@using BlazorApp.Data
+@using System.IO
+@using Microsoft.AspNetCore.Hosting
+@using Microsoft.Extensions.Logging
+@inject ILogger<FlowChart> Logger
+@inject IWebHostEnvironment Environment
+@inject CsvFileReaderService ReaderService
+
+<PageTitle>Flow Chart</PageTitle>
+
+<h1>FlowChart</h1>
+
+<p>
+	<label>
+		Upload CSV File
+		<InputFile OnChange="@LoadFiles" />
+	</label>
+</p>
+
+@if (diagramData.Count > 0)
+{
+	<button class="btn btn-primary" @onclick="Step">Step</button>
+}
+
+@if (isLoading)
+{
+	<p>Uploading...</p>
+}
+else
+{
+	@if (errors.Count > 0)
+	{
+		<h2>Errors</h2>
+		<ul class="text-danger">
+			@foreach (var error in errors)
+			{
+				<li>@error</li>
+			}
+		</ul>
+	}
+}
+
+
+@code {
+	private long maxFileSize = 1024 * 1024 * 3;
+	private int maxAllowedFiles = 1;
+	private bool isLoading;
+	private List<string> errors = new();
+	private List<Data.Task> diagramData = new();
+
+	private async System.Threading.Tasks.Task LoadFiles(InputFileChangeEventArgs e)
+	{
+		isLoading = true;
+		errors.Clear();
+
+		if (e.FileCount > maxAllowedFiles)
+		{
+			errors.Add($"Error: Attempting to upload {errors.Count} files, but only {maxAllowedFiles} files allowed!");
+			return;
+		}
+
+		foreach (var file in e.GetMultipleFiles(maxAllowedFiles))
+		{
+			try
+			{
+
+				await using MemoryStream fs = new();
+				await file.OpenReadStream(maxFileSize).CopyToAsync(fs);
+
+				diagramData = await ReaderService.ReadCsvFileToObjectAsync(fs);
+			}
+			catch (Exception ex)
+			{
+				errors.Add($"File: {file.Name} Error: {ex.Message}");
+			}
+		}
+
+		isLoading = false;
+	}
+
+	private void Step()
+	{
+		foreach (Data.Task task in diagramData)
+		{
+			foreach (var taskActivity in task.Activities)
+			{
+				taskActivity.Consume();
+			}
+		}
+		foreach (Data.Task task in diagramData)
+		{
+			foreach (var taskActivity in task.Activities)
+			{
+				Console.WriteLine($"Activity: '{taskActivity.Name}'		state: {taskActivity.CanProcess}");
+				taskActivity.Process();
+			}
+		}
+
+	}
+
+
+}

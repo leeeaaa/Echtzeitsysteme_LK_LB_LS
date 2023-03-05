@@ -92,7 +92,7 @@ else
 		{
 			foreach (var taskActivity in task.Activities)
 			{
-				Console.WriteLine($"Activity: '{taskActivity.Name}'		state: {taskActivity.CanProcess}");
+				Console.WriteLine($"Activity: '{taskActivity.Name}', state: {taskActivity.CanProcess}");
 				taskActivity.Process();
 			}
 		}

@@ -1,5 +1,6 @@
 Task, Tanken,,,
 Activity, Tanken, BezahlenKarte,1
 Activity, Tanken, LosFahren,1
-Semaphore, S2,1, BezahlenKarte, LosFahren
+Mutex, M1, LosFahren, BezahlenKarte
+Semaphore, S2,2, BezahlenKarte, LosFahren
 Semaphore, S3,0, LosFahren, BezahlenKarte

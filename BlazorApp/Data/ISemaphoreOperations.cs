@@ -9,4 +9,9 @@ public interface ISemaphoreOperations
 
     bool CanDecrement();
 
+    string Name {
+        get;
+        set;
+    }
+
 }

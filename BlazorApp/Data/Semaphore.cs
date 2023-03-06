@@ -5,7 +5,7 @@ public class Semaphore : ISemaphoreOperations
 
     public string Name {
         get;
-        private set;
+        set;
     }
 
     private int _state;

@@ -55,7 +55,8 @@ public class Activity
 			});
 			if (CanProcess)
 			{
-				Inputs.ForEach(input => input.Decrement());
+				Inputs.ForEach(input => {input.Decrement();
+				Console.WriteLine(input.Name);});
 			}
 		}
 	}
@@ -66,7 +67,9 @@ public class Activity
 		if (_processTime > 0 || CanProcess) _processTime++;
 		if (_processTime == _processDuration)
 		{
-			Outputs.ForEach(output => output.Increment());
+			Outputs.ForEach(output => { output.Increment();
+			Console.WriteLine(output.Name); });
+			
 			_processTime = 0;
 		}
 		CanProcess = false;

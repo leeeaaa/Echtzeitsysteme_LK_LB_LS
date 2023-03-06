@@ -33,9 +33,11 @@ public class CsvFileReaderService
 			}
 
 			var outputActivity = activities.Find(activity => activity.Name == semaphoreList[3]);
-			outputActivity?.AddOutput(existingSemaphore);
+			Console.WriteLine(outputActivity?.Outputs.Find(output => output.Name == existingSemaphore.Name));
+
+			if(outputActivity?.Outputs.Find(output => output.Name == existingSemaphore.Name) is null) outputActivity?.AddOutput(existingSemaphore);
 			var inputActivity = activities.Find(activitiy => activitiy.Name == semaphoreList[4]);
-			inputActivity?.AddInput(existingSemaphore);
+			if(inputActivity?.Outputs.Find(input => input.Name == existingSemaphore.Name) is null) inputActivity?.AddInput(existingSemaphore);
 
 			if (inputActivity != null && outputActivity != null)
 			{

@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace BlazorApp.Data;
 
 public class Mutex : ISemaphoreOperations
@@ -22,6 +24,7 @@ public class Mutex : ISemaphoreOperations
     public void Decrement()
     {
         _state--;
+        Debug.Assert(_state >= 0);
     }
 
     public void Increment()

@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace BlazorApp.Data;
 
 public class Semaphore : ISemaphoreOperations
@@ -40,7 +42,8 @@ public class Semaphore : ISemaphoreOperations
     public void Decrement()
     {
         _state--;
-    }
+        Debug.Assert(_state >= 0);
+	}
 
     public void Increment()
     {

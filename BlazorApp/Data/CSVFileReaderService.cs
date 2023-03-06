@@ -34,10 +34,10 @@ public class CsvFileReaderService
 
 			var outputActivity = activities.Find(activity => activity.Name == semaphoreList[3]);
 			Console.WriteLine(outputActivity?.Outputs.Find(output => output.Name == existingSemaphore.Name));
-
 			if(outputActivity?.Outputs.Find(output => output.Name == existingSemaphore.Name) is null) outputActivity?.AddOutput(existingSemaphore);
-			var inputActivity = activities.Find(activitiy => activitiy.Name == semaphoreList[4]);
-			if(inputActivity?.Outputs.Find(input => input.Name == existingSemaphore.Name) is null) inputActivity?.AddInput(existingSemaphore);
+
+			var inputActivity = activities.Find(activity => activity.Name == semaphoreList[4]);
+			if(inputActivity?.Inputs.Find(input => input.Name == existingSemaphore.Name) is null) inputActivity?.AddInput(existingSemaphore);
 
 			if (inputActivity != null && outputActivity != null)
 			{
@@ -53,7 +53,7 @@ public class CsvFileReaderService
 
 			for (int i = 2; i < mutexList.Count; i++)
 			{
-				var activity = activities.Find(activitiy => activitiy.Name == mutexList[i]);
+				var activity = activities.Find(activity => activity.Name == mutexList[i]);
 				activity?.AddInput(mutex);
 				activity?.AddOutput(mutex);
 			}

@@ -6,4 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Z.Blazor.Diagrams" Version="2.1.6" />
+  </ItemGroup>
+
 </Project>

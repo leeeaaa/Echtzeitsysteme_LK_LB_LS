@@ -1,6 +1,7 @@
 ﻿@page "/flowchart"
 @using BlazorApp.Data
 @using System.IO
+@using Blazor.Diagrams.Core.Geometry
 @using Microsoft.AspNetCore.Hosting
 @using Microsoft.Extensions.Logging
 @inject ILogger<FlowChart> Logger
@@ -17,6 +18,12 @@
 		<InputFile OnChange="@LoadFiles" />
 	</label>
 </p>
+
+<div class="canvas_container" style="height: 400px; width:400px">
+	<CascadingValue Value="Diagram">
+		<DiagramCanvas></DiagramCanvas>
+	</CascadingValue>
+</div>
 
 @if (diagramData.Count > 0)
 {
@@ -48,6 +55,30 @@ else
 	private bool isLoading;
 	private List<string> errors = new();
 	private List<Data.Task> diagramData = new();
+
+	private Diagram Diagram { get; set; }
+
+	private NodeModel NewNode(double x, double y)
+	{
+		var node = new NodeModel(new Point(x, y));
+		node.AddPort(PortAlignment.Bottom);
+		node.AddPort(PortAlignment.Top);
+		node.AddPort(PortAlignment.Left);
+		node.AddPort(PortAlignment.Right);
+		return node;
+	}
+
+	protected override void OnInitialized()
+	{
+		base.OnInitialized();
+
+
+		Diagram = new Diagram();
+		var node1 = NewNode(50, 50);
+		var node2 = NewNode(300, 300);
+		var node3 = NewNode(300, 50);
+		Diagram.Nodes.Add(new List<NodeModel> { node1, node2, node3 });
+	}
 
 	private async System.Threading.Tasks.Task LoadFiles(InputFileChangeEventArgs e)
 	{

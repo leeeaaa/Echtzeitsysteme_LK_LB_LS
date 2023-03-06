@@ -9,8 +9,10 @@ public class Mutex : ISemaphoreOperations
         get;
         set;
     }
+	public List<Activity> Inputs { get; set; } = new List<Activity>();
+	public List<Activity> Outputs { get; set; } = new List<Activity>();
 
-    private int _state = 1;
+	private int _state = 1;
 
     public Mutex(string name){
         Name = name;

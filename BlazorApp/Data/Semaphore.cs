@@ -20,8 +20,10 @@ public class Semaphore : ISemaphoreOperations
         get;
         private set;
     }
+	public List<Activity> Inputs { get; set; } = new List<Activity>();
+	public List<Activity> Outputs { get; set; } = new List<Activity>();
 
-    public Semaphore(int state, string name) : this(state, false, 1, name){}
+	public Semaphore(int state, string name) : this(state, false, 1, name){}
 
     public Semaphore(int state, bool isActivitySemaphore, int numberInputs, string name){
         _state = state;

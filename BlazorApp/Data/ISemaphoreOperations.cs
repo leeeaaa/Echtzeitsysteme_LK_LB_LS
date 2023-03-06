@@ -14,4 +14,7 @@ public interface ISemaphoreOperations
         set;
     }
 
+    List<Activity> Inputs { get; set; }
+    List<Activity> Outputs { get; set;}
+
 }

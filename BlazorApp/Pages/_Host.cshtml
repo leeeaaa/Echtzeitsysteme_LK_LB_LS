@@ -36,5 +36,19 @@
 	<script src="_framework/blazor.server.js"></script>
 	<!-- blazor diagrams -->
 	<script src="_content/Z.Blazor.Diagrams/script.min.js"></script>
+
+	<!-- Graphviz -->
+	<script src="https://d3js.org/d3.v5.min.js"></script>
+	<script src="https://unpkg.com/@@hpcc-js/wasm@0.3.11/dist/index.min.js" "></script>
+	<script src="https://unpkg.com/d3-graphviz@3.1.0/build/d3-graphviz.js"></script>
+
+	<script>
+		window.renderDot = (model, element) => {
+			var graphviz = d3.select(element)
+				.graphviz();
+
+			graphviz.renderDot(model);
+		}
+	</script>
 </body>
 </html>

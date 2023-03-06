@@ -39,9 +39,17 @@ public class Activity
 	}
 
 
-	public void AddInput(ISemaphoreOperations input) => Inputs.Add(input);
+	public void AddInput(ISemaphoreOperations input)
+	{
+		Inputs.Add(input);
+		input.Outputs.Add(this);
+	}
 
-	public void AddOutput(ISemaphoreOperations output) => Outputs.Add(output);
+	public void AddOutput(ISemaphoreOperations output)
+	{
+		Outputs.Add(output);
+		output.Inputs.Add(this);
+	}
 
 	public void Consume()
 	{

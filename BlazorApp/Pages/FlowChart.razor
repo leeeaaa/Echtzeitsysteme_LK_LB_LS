@@ -4,9 +4,11 @@
 @using Blazor.Diagrams.Core.Geometry
 @using Microsoft.AspNetCore.Hosting
 @using Microsoft.Extensions.Logging
+@using System.Text;
 @inject ILogger<FlowChart> Logger
 @inject IWebHostEnvironment Environment
 @inject CsvFileReaderService ReaderService
+@inject IJSRuntime js
 
 <PageTitle>Flow Chart</PageTitle>
 
@@ -19,16 +21,19 @@
 	</label>
 </p>
 
-<div class="canvas_container" style="height: 400px; width:400px">
+@if (diagramData.Tasks.Count > 0)
+{
+	<button class="btn btn-primary" @onclick="Step">Step</button>
+}
+
+<div class="canvas_container" style="height: 400px; width: 400px">
 	<CascadingValue Value="Diagram">
 		<DiagramCanvas></DiagramCanvas>
 	</CascadingValue>
 </div>
 
-@if (diagramData.Count > 0)
-{
-	<button class="btn btn-primary" @onclick="Step">Step</button>
-}
+<div @ref="_renderTo"></div>
+
 
 @if (isLoading)
 {
@@ -54,31 +59,121 @@ else
 	private int maxAllowedFiles = 1;
 	private bool isLoading;
 	private List<string> errors = new();
-	private List<Data.Task> diagramData = new();
+	private CsvData diagramData = new();
 
 	private Diagram Diagram { get; set; }
 
-	private NodeModel NewNode(double x, double y)
-	{
-		var node = new NodeModel(new Point(x, y));
-		node.AddPort(PortAlignment.Bottom);
-		node.AddPort(PortAlignment.Top);
-		node.AddPort(PortAlignment.Left);
-		node.AddPort(PortAlignment.Right);
-		return node;
-	}
 
 	protected override void OnInitialized()
 	{
 		base.OnInitialized();
 
+		var options = new DiagramOptions
+		{
+		};
 
-		Diagram = new Diagram();
-		var node1 = NewNode(50, 50);
-		var node2 = NewNode(300, 300);
-		var node3 = NewNode(300, 50);
-		Diagram.Nodes.Add(new List<NodeModel> { node1, node2, node3 });
+		Diagram = new Diagram(options);
 	}
+
+	private NodeModel NewNode(double x, double y)
+	{
+		var node = new NodeModel(new Point(x, y));
+		return node;
+	}
+
+	private async void ShowDiagram()
+	{
+		/*var diagram = """"
+		digraph finite_state_machine {
+		fontname = "Helvetica,Arial,sans-serif"
+		node[fontname = "Helvetica,Arial,sans-serif"]
+		edge[fontname = "Helvetica,Arial,sans-serif"]
+			rankdir = LR;
+			node[shape = rectangle]; 0 3 4 8;
+			node[shape = circle];
+			0-> 2[label = "SS(B)"];
+			0-> 1[label = "SS(S)"];
+			1-> 3[label = "S($end)"];
+			2-> 6[label = "SS(b)"];
+			2-> 5[label = "SS(a)"];
+			2-> 4[label = "S(A)"];
+			5-> 7[label = "S(b)"];
+			5-> 5[label = "S(a)"];
+			6-> 6[label = "S(b)"];
+			6-> 5[label = "S(a)"];
+			7-> 8[label = "S(b)"];
+			7-> 5[label = "S(a)"];
+			8-> 6[label = "S(b)"];
+			8-> 5[label = "S(a)"];
+		}
+		"""";*/
+		var diagram = @"
+digraph g {
+fontname = ""Helvetica,Arial,sans-serif""
+node[fontname = ""Helvetica,Arial,sans-serif""]
+edge[fontname = ""Helvetica,Arial,sans-serif""]
+graph [rankdir = ""LR""];
+node [
+fontsize = ""16""
+shape = ""record""
+];
+edge [
+];
+";
+
+		StringBuilder builder = new StringBuilder(diagram);
+
+		Diagram.Nodes.Clear();
+		foreach (Data.Task task in diagramData.Tasks)
+		{
+			foreach (var taskActivity in task.Activities)
+			{
+				//Graphviz
+				builder.AppendLine(@$"""{taskActivity.Name}"" [label=""{task.Name} - {taskActivity.Name}""];");
+
+				//Blazor Diagrams
+				var node = NewNode(0, 0);
+				node.Title = $"{task.Name} - {taskActivity.Name}";
+				Diagram.Nodes.Add(node);
+			}
+		}
+
+		foreach (Data.Semaphore semaphore in diagramData.Semaphores)
+		{
+			int inputIt = 0;
+			int outputIt = 0;
+			while (inputIt < semaphore.Inputs.Count && outputIt < semaphore.Outputs.Count)
+			{
+				//Graphviz
+				builder.AppendLine(@$"""{semaphore.Inputs[inputIt].Name}""->""{semaphore.Outputs[outputIt].Name}"" [label=""{semaphore.Name}""];");
+
+				//Blazor Diagrams
+				var inputNode = Diagram.Nodes.First(node => node.Title.Contains(semaphore.Inputs[inputIt].Name));
+				var outputNode = Diagram.Nodes.First(node => node.Title.Contains(semaphore.Outputs[outputIt].Name));
+				var link = new LinkModel(inputNode, outputNode);
+				Diagram.Links.Add(link);
+
+				if (inputIt < semaphore.Inputs.Count - 1) inputIt++;
+				else if (outputIt < semaphore.Outputs.Count - 1) outputIt++;
+				else break;
+			}
+		}
+
+		foreach(Data.Mutex mutex in diagramData.Mutexes)
+		{
+			builder.AppendLine(@$"""{mutex.Name}"" [label=""{mutex.Name}"",shape=hexagon];");
+			foreach(var activity in mutex.Inputs)
+			{
+				builder.AppendLine(@$"""{activity.Name}"" -> ""{mutex.Name}"" [arrowhead = none];");
+			}
+		}
+
+		builder.Append("}");
+		diagram = builder.ToString();
+		await js.InvokeVoidAsync("renderDot", diagram, _renderTo);
+	}
+
+	private ElementReference _renderTo;
 
 	private async System.Threading.Tasks.Task LoadFiles(InputFileChangeEventArgs e)
 	{
@@ -108,19 +203,20 @@ else
 		}
 
 		isLoading = false;
+		ShowDiagram();
 	}
 
 	private void Step()
 	{
 
-		foreach (Data.Task task in diagramData)
+		foreach (Data.Task task in diagramData.Tasks)
 		{
 			foreach (var taskActivity in task.Activities)
 			{
 				taskActivity.Consume();
 			}
 		}
-		foreach (Data.Task task in diagramData)
+		foreach (Data.Task task in diagramData.Tasks)
 		{
 			foreach (var taskActivity in task.Activities)
 			{
@@ -130,8 +226,5 @@ else
 		}
 
 		Console.WriteLine("\n-----------------------\n");
-
 	}
-
-
 }

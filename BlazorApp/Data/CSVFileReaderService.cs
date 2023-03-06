@@ -3,29 +3,42 @@ using Microsoft.AspNetCore.Components.Forms;
 
 namespace BlazorApp.Data;
 
+public struct CsvData{
+
+	public CsvData()
+	{
+		Tasks = new();
+		Semaphores = new();
+		Mutexes = new();
+	}
+	public List<Task> Tasks { get; set; }
+	public List<Semaphore> Semaphores { get; set; }
+	public List<Mutex> Mutexes { get; set; }
+}
+
 public class CsvFileReaderService
 {
 
-	private List<Task> ConvertCsvToObjects(List<List<string>> elements)
+	private CsvData ConvertCsvToObjects(List<List<string>> elements)
 	{
-		List<Task> tasks = new();
-		List<Activity> activities = new();
-		List<Semaphore> semaphores = new();
 
-		elements.FindAll(element => element.First() == "Task").ForEach(taskList => tasks.Add(CreateTaskFromList(taskList)));
+		var csvData = new CsvData();
+		List<Activity> activities = new();
+
+		elements.FindAll(element => element.First() == "Task").ForEach(taskList => csvData.Tasks.Add(CreateTaskFromList(taskList)));
 		elements.FindAll(element => element.First() == "Activity").ForEach(activityList =>
 		{
 			var activity = CreateActivityFromList(activityList);
-			tasks.Find(task => task.Name == activityList[1])?.AddActivity(activity);
+			csvData.Tasks.Find(task => task.Name == activityList[1])?.AddActivity(activity);
 			activities.Add(activity);
 		});
 		elements.FindAll(element => element.First() == "Semaphore").ForEach(semaphoreList =>
 		{
-			var existingSemaphore = semaphores.Find(semaphore => semaphore.Name == semaphoreList[1]);
+			var existingSemaphore = csvData.Semaphores.Find(semaphore => semaphore.Name == semaphoreList[1]);
 			if (existingSemaphore is null)
 			{
 				existingSemaphore = CreateSemaphoreFromList(semaphoreList);
-				semaphores.Add(existingSemaphore);
+				csvData.Semaphores.Add(existingSemaphore);
 			}
 			else
 			{
@@ -33,7 +46,6 @@ public class CsvFileReaderService
 			}
 
 			var outputActivity = activities.Find(activity => activity.Name == semaphoreList[3]);
-			Console.WriteLine(outputActivity?.Outputs.Find(output => output.Name == existingSemaphore.Name));
 			if(outputActivity?.Outputs.Find(output => output.Name == existingSemaphore.Name) is null) outputActivity?.AddOutput(existingSemaphore);
 
 			var inputActivity = activities.Find(activity => activity.Name == semaphoreList[4]);
@@ -41,7 +53,7 @@ public class CsvFileReaderService
 
 			if (inputActivity != null && outputActivity != null)
 			{
-				if (tasks.Find(task =>
+				if (csvData.Tasks.Find(task =>
 					    task.Activities.Contains(inputActivity) && task.Activities.Contains(outputActivity)) !=
 				    null) existingSemaphore.SetActivitySemaphore();
 			}
@@ -50,6 +62,7 @@ public class CsvFileReaderService
 		elements.FindAll(element => element.First() == "Mutex").ForEach(mutexList =>
 		{
 			var mutex = CreateMutexFromList(mutexList);
+			csvData.Mutexes.Add(mutex);
 
 			for (int i = 2; i < mutexList.Count; i++)
 			{
@@ -58,11 +71,10 @@ public class CsvFileReaderService
 				activity?.AddOutput(mutex);
 			}
 		});
-
-		return tasks;
+		return csvData;
 	}
 
-	public System.Threading.Tasks.Task<List<Task>> ReadCsvFileToObjectAsync(System.IO.Stream iStream)
+	public System.Threading.Tasks.Task<CsvData> ReadCsvFileToObjectAsync(System.IO.Stream iStream)
 	{
 
 		return System.Threading.Tasks.Task.Run(() =>

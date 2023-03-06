@@ -14,13 +14,13 @@ Activity, Task5, Activitiy5-b, 1
 Activity, Task6, Activitiy6, 1
 Activity, Task7, Activitiy7, 1
 Mutex, m234, Activitiy2, Activitiy3, Activitiy4
-Semaphore, S51, 1, Activitiy5-a, Activitiy1
+Semaphore, S51, 1, Activitiy5-b, Activitiy1
 Semaphore, S12, 0, Activitiy1, Activitiy2
 Semaphore, S13, 0, Activitiy1, Activitiy3
 Semaphore, S24, 0, Activitiy2, Activitiy4
 Semaphore, S36, 0, Activitiy3, Activitiy6
 Semaphore, S46, 0, Activitiy4, Activitiy6
-Semaphore, S56, 0, Activitiy6, Activitiy5-a
+Semaphore, S65, 0, Activitiy6, Activitiy5-a
 Semaphore, S5b-a, 1, Activitiy5-b, Activitiy5-a
 Semaphore, S5a-b, 0, Activitiy5-a, Activitiy5-b
 Semaphore, S7, 0, Activitiy5-a, Activitiy7

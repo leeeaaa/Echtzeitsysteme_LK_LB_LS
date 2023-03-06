@@ -7,30 +7,31 @@ public class Mutex : ISemaphoreOperations
 
     public string Name {
         get;
-        set;
+        private set;
     }
-	public List<Activity> Inputs { get; set; } = new List<Activity>();
+
+    public int State { get; private set; } = 1;
+
+    public List<Activity> Inputs { get; set; } = new List<Activity>();
 	public List<Activity> Outputs { get; set; } = new List<Activity>();
 
-	private int _state = 1;
-
-    public Mutex(string name){
+	public Mutex(string name){
         Name = name;
     }
 
     public bool CanDecrement()
     {
-        return _state > 0;
+        return State > 0;
     }
 
     public void Decrement()
     {
-        _state--;
-        Debug.Assert(_state >= 0);
+        State--;
+        Debug.Assert(State >= 0);
     }
 
     public void Increment()
     {
-        _state++;
+        State++;
     }
 }

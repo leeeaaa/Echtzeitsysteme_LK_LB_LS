@@ -7,10 +7,11 @@ public class Semaphore : ISemaphoreOperations
 
     public string Name {
         get;
-        set;
+        private set;
     }
 
-    private int _state;
+    public int State { get; private set; }
+
     public bool IsActivitySemaphore{
         get;
         private set;
@@ -26,7 +27,7 @@ public class Semaphore : ISemaphoreOperations
 	public Semaphore(int state, string name) : this(state, false, 1, name){}
 
     public Semaphore(int state, bool isActivitySemaphore, int numberInputs, string name){
-        _state = state;
+        State = state;
         IsActivitySemaphore = isActivitySemaphore;
         NumberInputs = numberInputs;
         Name = name;
@@ -38,17 +39,17 @@ public class Semaphore : ISemaphoreOperations
 
     public bool CanDecrement()
     {
-        return _state > 0;
+        return State > 0;
     }
 
     public void Decrement()
     {
-        _state--;
-        Debug.Assert(_state >= 0);
+        State--;
+        Debug.Assert(State >= 0);
 	}
 
     public void Increment()
     {
-        _state++;
+        State++;
     }
 }

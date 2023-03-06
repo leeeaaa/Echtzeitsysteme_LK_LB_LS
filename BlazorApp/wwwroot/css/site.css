@@ -19,7 +19,7 @@ a, .btn-link {
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
 .content {
@@ -63,6 +63,58 @@ a, .btn-link {
     color: white;
 }
 
-    .blazor-error-boundary::after {
-        content: "An error has occurred."
-    }
+.blazor-error-boundary::after {
+    content: "An error has occurred."
+}
+
+
+.chart-area {
+    width: 100%;
+    padding: 1rem;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 5px;
+    margin-block: 1rem;
+}
+
+
+.info-container {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+}
+
+
+.semaphore-list {
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 5px;
+    list-style: none;
+    padding: 1rem;
+    float: left;
+    font-size: 20px;
+}
+
+.activeSemaphore {
+    color: green;
+    
+}
+
+.mutex-list {
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 5px;
+    list-style: none;
+    padding: 1rem;
+    float: left;
+    font-size: 20px;
+}
+
+.activeMutex {
+    color: red;
+}
+
+.upload-area {
+    font-size: 20px;
+    margin-block: 1rem;
+}

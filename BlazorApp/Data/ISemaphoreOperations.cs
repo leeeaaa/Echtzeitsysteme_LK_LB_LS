@@ -11,7 +11,11 @@ public interface ISemaphoreOperations
 
     string Name {
         get;
-        set;
+    }
+
+    int State
+    {
+	    get;
     }
 
     List<Activity> Inputs { get; set; }

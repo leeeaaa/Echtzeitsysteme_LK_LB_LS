@@ -1,4 +1,4 @@
-﻿@page "/flowchart"
+﻿@page "/"
 @using BlazorApp.Data
 @using System.IO
 @using Blazor.Diagrams.Core.Geometry
@@ -14,24 +14,46 @@
 
 <h1>FlowChart</h1>
 
-<p>
+<div class="upload-area">
 	<label>
-		Upload CSV File
-		<InputFile OnChange="@LoadFiles" />
+		Upload CSV File:
 	</label>
-</p>
+	<br/>
+	<InputFile OnChange="@LoadFiles" />
+</div>
 
 @if (diagramData.Tasks.Count > 0)
 {
 	<button class="btn btn-primary" @onclick="Step">Step</button>
 }
+<div class="chart-area" @ref="_renderTo"></div>
+<div class="info-container">
+	<div class="semaphore-list">
+		<p>Semaphores</p>
+		<ul>
+			@foreach (var semaphore in diagramData.Semaphores)
+			{
+				<li class="@(semaphore.CanDecrement() ? "activeSemaphore" : "")">@semaphore.Name: @semaphore.State</li>
+			}
+		</ul>
+	</div>
 
-<div @ref="_renderTo"></div>
+	<div class="mutex-list">
+		<p>Mutexes</p>
+		<ul>
+			@foreach (var mutex in diagramData.Mutexes)
+			{
+				<li class="@(!mutex.CanDecrement() ? "activeMutex" : "")">@mutex.Name: @mutex.State</li>
+			}
+		</ul>
+	</div>
+</div>
+
 
 
 @if (isLoading)
 {
-	<p>Uploading...</p>
+	<p>Loading...</p>
 }
 else
 {
@@ -55,52 +77,10 @@ else
 	private List<string> errors = new();
 	private CsvData diagramData = new();
 
-	private Diagram Diagram { get; set; }
-
-
-	protected override void OnInitialized()
-	{
-		base.OnInitialized();
-
-		var options = new DiagramOptions
-		{
-		};
-
-		Diagram = new Diagram(options);
-	}
-
-	private NodeModel NewNode(double x, double y)
-	{
-		var node = new NodeModel(new Point(x, y));
-		return node;
-	}
 
 	private async void ShowDiagram()
 	{
-		/*var diagram = """"
-		digraph finite_state_machine {
-		fontname = "Helvetica,Arial,sans-serif"
-		node[fontname = "Helvetica,Arial,sans-serif"]
-		edge[fontname = "Helvetica,Arial,sans-serif"]
-			rankdir = LR;
-			node[shape = rectangle]; 0 3 4 8;
-			node[shape = circle];
-			0-> 2[label = "SS(B)"];
-			0-> 1[label = "SS(S)"];
-			1-> 3[label = "S($end)"];
-			2-> 6[label = "SS(b)"];
-			2-> 5[label = "SS(a)"];
-			2-> 4[label = "S(A)"];
-			5-> 7[label = "S(b)"];
-			5-> 5[label = "S(a)"];
-			6-> 6[label = "S(b)"];
-			6-> 5[label = "S(a)"];
-			7-> 8[label = "S(b)"];
-			7-> 5[label = "S(a)"];
-			8-> 6[label = "S(b)"];
-			8-> 5[label = "S(a)"];
-		}
-		"""";*/
+
 		var diagram = @"
 digraph g {
 fontname = ""Helvetica,Arial,sans-serif""
@@ -123,7 +103,7 @@ edge [
 			{
 				if (taskActivity.IsActive)
 				{
-					builder.AppendLine(@$"""{taskActivity.Name}"" [label=""{task.Name} - {taskActivity.Name}"", color=""green""];");
+					builder.AppendLine(@$"""{taskActivity.Name}"" [label=""{task.Name} - {taskActivity.Name}"", color=""green"", penwidth=2];");
 				}
 				else
 				{
@@ -139,10 +119,17 @@ edge [
 			int outputIt = 0;
 			while (inputIt < semaphore.Inputs.Count && outputIt < semaphore.Outputs.Count)
 			{
+				builder.Append(@$"""{semaphore.Inputs[inputIt].Name}""->""{semaphore.Outputs[outputIt].Name}"" [label=""{semaphore.Name}""");
+
 				if (semaphore.IsActivitySemaphore)
-					builder.AppendLine(@$"""{semaphore.Inputs[inputIt].Name}""->""{semaphore.Outputs[outputIt].Name}"" [label=""{semaphore.Name}"", arrowhead=""open""];");
+					builder.Append(@", arrowhead=""onormal""");
 				else
-					builder.AppendLine(@$"""{semaphore.Inputs[inputIt].Name}""->""{semaphore.Outputs[outputIt].Name}"" [label=""{semaphore.Name}"", arrowhead=""normal""];");
+					builder.Append(@", arrowhead=""normal""");
+
+				if(semaphore.CanDecrement())
+					builder.Append(@", color=""green"", penwidth=2");
+
+				builder.AppendLine("];");
 
 				if (inputIt < semaphore.Inputs.Count - 1) inputIt++;
 				else if (outputIt < semaphore.Outputs.Count - 1) outputIt++;
@@ -152,10 +139,17 @@ edge [
 
 		foreach(Data.Mutex mutex in diagramData.Mutexes)
 		{
-			builder.AppendLine(@$"""{mutex.Name}"" [label=""{mutex.Name}"",shape=hexagon];");
+			if (mutex.CanDecrement())
+				builder.AppendLine(@$"""{mutex.Name}"" [label=""{mutex.Name}"",shape=hexagon];");
+			else
+				builder.AppendLine(@$"""{mutex.Name}"" [label=""{mutex.Name}"",shape=hexagon, color=""red"", penwidth=2];");
+
 			foreach(var activity in mutex.Inputs)
 			{
-				builder.AppendLine(@$"""{activity.Name}"" -> ""{mutex.Name}"" [arrowhead=none];");
+				if(!mutex.CanDecrement() && activity.IsActive)
+					builder.AppendLine(@$"""{activity.Name}"" -> ""{mutex.Name}"" [arrowhead=none, color=""red"", penwidth=2];");
+				else
+					builder.AppendLine(@$"""{activity.Name}"" -> ""{mutex.Name}"" [arrowhead=none];");
 			}
 		}
 
@@ -204,19 +198,21 @@ edge [
 		{
 			foreach (var taskActivity in task.Activities)
 			{
-				taskActivity.Consume();
-			}
-		}
-		ShowDiagram();
-		foreach (Data.Task task in diagramData.Tasks)
-		{
-			foreach (var taskActivity in task.Activities)
-			{
 				Console.WriteLine($"Activity: '{taskActivity.Name}', state: {taskActivity.CanProcess}");
 				taskActivity.Process();
 			}
 		}
+		
 
+		foreach (Data.Task task in diagramData.Tasks)
+		{
+			foreach (var taskActivity in task.Activities)
+			{
+				taskActivity.Consume();
+			}
+		}
+
+		ShowDiagram();
 		Console.WriteLine("\n-----------------------\n");
 		
 	}

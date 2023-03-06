@@ -26,12 +26,6 @@
 	<button class="btn btn-primary" @onclick="Step">Step</button>
 }
 
-<div class="canvas_container" style="height: 400px; width: 400px">
-	<CascadingValue Value="Diagram">
-		<DiagramCanvas></DiagramCanvas>
-	</CascadingValue>
-</div>
-
 <div @ref="_renderTo"></div>
 
 
@@ -123,18 +117,19 @@ edge [
 
 		StringBuilder builder = new StringBuilder(diagram);
 
-		Diagram.Nodes.Clear();
 		foreach (Data.Task task in diagramData.Tasks)
 		{
 			foreach (var taskActivity in task.Activities)
 			{
-				//Graphviz
-				builder.AppendLine(@$"""{taskActivity.Name}"" [label=""{task.Name} - {taskActivity.Name}""];");
+				if (taskActivity.IsActive)
+				{
+					builder.AppendLine(@$"""{taskActivity.Name}"" [label=""{task.Name} - {taskActivity.Name}"", color=""green""];");
+				}
+				else
+				{
+					builder.AppendLine(@$"""{taskActivity.Name}"" [label=""{task.Name} - {taskActivity.Name}""];");
+				}
 
-				//Blazor Diagrams
-				var node = NewNode(0, 0);
-				node.Title = $"{task.Name} - {taskActivity.Name}";
-				Diagram.Nodes.Add(node);
 			}
 		}
 
@@ -144,14 +139,10 @@ edge [
 			int outputIt = 0;
 			while (inputIt < semaphore.Inputs.Count && outputIt < semaphore.Outputs.Count)
 			{
-				//Graphviz
-				builder.AppendLine(@$"""{semaphore.Inputs[inputIt].Name}""->""{semaphore.Outputs[outputIt].Name}"" [label=""{semaphore.Name}""];");
-
-				//Blazor Diagrams
-				var inputNode = Diagram.Nodes.First(node => node.Title.Contains(semaphore.Inputs[inputIt].Name));
-				var outputNode = Diagram.Nodes.First(node => node.Title.Contains(semaphore.Outputs[outputIt].Name));
-				var link = new LinkModel(inputNode, outputNode);
-				Diagram.Links.Add(link);
+				if (semaphore.IsActivitySemaphore)
+					builder.AppendLine(@$"""{semaphore.Inputs[inputIt].Name}""->""{semaphore.Outputs[outputIt].Name}"" [label=""{semaphore.Name}"", arrowhead=""open""];");
+				else
+					builder.AppendLine(@$"""{semaphore.Inputs[inputIt].Name}""->""{semaphore.Outputs[outputIt].Name}"" [label=""{semaphore.Name}"", arrowhead=""normal""];");
 
 				if (inputIt < semaphore.Inputs.Count - 1) inputIt++;
 				else if (outputIt < semaphore.Outputs.Count - 1) outputIt++;
@@ -164,7 +155,7 @@ edge [
 			builder.AppendLine(@$"""{mutex.Name}"" [label=""{mutex.Name}"",shape=hexagon];");
 			foreach(var activity in mutex.Inputs)
 			{
-				builder.AppendLine(@$"""{activity.Name}"" -> ""{mutex.Name}"" [arrowhead = none];");
+				builder.AppendLine(@$"""{activity.Name}"" -> ""{mutex.Name}"" [arrowhead=none];");
 			}
 		}
 
@@ -216,6 +207,7 @@ edge [
 				taskActivity.Consume();
 			}
 		}
+		ShowDiagram();
 		foreach (Data.Task task in diagramData.Tasks)
 		{
 			foreach (var taskActivity in task.Activities)
@@ -226,5 +218,6 @@ edge [
 		}
 
 		Console.WriteLine("\n-----------------------\n");
+		
 	}
 }

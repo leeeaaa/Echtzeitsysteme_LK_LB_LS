@@ -55,12 +55,7 @@ public class Activity
 	{
 		if (_processTime == 0)
 		{
-			CanProcess = true;
-			Inputs.ForEach(input =>
-			{
-				var canProcess = input.CanDecrement();
-				if (canProcess == false) CanProcess = false;
-			});
+			CanProcess = Inputs.TrueForAll(input => input.CanDecrement());
 			if (CanProcess)
 			{
 				Inputs.ForEach(input => {input.Decrement();
@@ -83,6 +78,6 @@ public class Activity
 		CanProcess = false;
 	}
 
-	public bool IsActive() => _processTime > 0;
+	public bool IsActive { get => _processTime > 0 || CanProcess; }
 
 }

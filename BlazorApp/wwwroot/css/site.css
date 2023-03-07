@@ -118,3 +118,8 @@ a, .btn-link {
     font-size: 20px;
     margin-block: 1rem;
 }
+
+.control-buttons {
+    display: flex;
+    gap: 1rem;
+}

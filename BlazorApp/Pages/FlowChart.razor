@@ -5,10 +5,12 @@
 @using Microsoft.AspNetCore.Hosting
 @using Microsoft.Extensions.Logging
 @using System.Text;
+@using Task = System.Threading.Tasks.Task
 @inject ILogger<FlowChart> Logger
 @inject IWebHostEnvironment Environment
 @inject CsvFileReaderService ReaderService
 @inject IJSRuntime js
+@implements IDisposable
 
 <PageTitle>Flow Chart</PageTitle>
 
@@ -18,12 +20,23 @@
 	<label>
 		Upload CSV File:
 	</label>
-	<br />
+	<br/>
 	<InputFile OnChange="@LoadFiles" />
 </div>
 
 <div style="display: @(_diagramData.Tasks.Count > 0 ? "" : "none")">
-	<button class="btn btn-primary" @onclick="Step">Step</button>
+	<div class="control-buttons">
+		<button class="btn btn-primary" @onclick="StartAnimation">Start</button>
+		<button class="btn btn-primary" @onclick="StopAnimation">Stop</button>
+		<button class="btn btn-primary" @onclick="Step">Step</button>
+	</div>
+	<label>Animation interval: @_timerInterval ms</label>
+	<br />
+	<input type="range" min="100" max="2000" step="10"
+	       value="@_timerInterval" @oninput="@((args) => ChangeTimerInterval(args.Value.ToString()))"
+	       disabled=@_runningState/>
+
+
 	<div class="chart-area" @ref="_renderTo"></div>
 
 	<div class="info-container">
@@ -77,6 +90,19 @@ else
 	private List<string> _errors = new();
 	private CsvData _diagramData = new();
 	private List<Semaphore> _startSemaphores = new();
+	private bool _runningState = false;
+	private int _timerInterval = 1000;
+	private System.Threading.Timer _timer;
+	private int _stepState = 0;
+
+	protected override void OnInitialized()
+	{
+		base.OnInitialized();
+		_timer = new System.Threading.Timer(async _ =>
+		{
+			Step();
+		}, null, Timeout.Infinite, _timerInterval);
+	}
 
 
 	private async void ShowDiagram()
@@ -252,25 +278,54 @@ edge [
 
 	private void Step()
 	{
-		foreach (Data.Task task in _diagramData.Tasks)
+		if (_stepState++ == 0)
 		{
-			foreach (var taskActivity in task.Activities)
+			foreach (Data.Task task in _diagramData.Tasks)
 			{
-				Console.WriteLine($"Activity: '{taskActivity.Name}', state: {taskActivity.CanProcess}");
-				taskActivity.Process();
+				foreach (var taskActivity in task.Activities)
+				{
+					Console.WriteLine($"Activity: '{taskActivity.Name}', state: {taskActivity.CanProcess}");
+					taskActivity.Process();
+				}
 			}
 		}
-
-		foreach (Data.Task task in _diagramData.Tasks)
+		else
 		{
-			foreach (var taskActivity in task.Activities)
+			foreach (Data.Task task in _diagramData.Tasks)
 			{
-				taskActivity.Consume();
+				foreach (var taskActivity in task.Activities)
+				{
+					taskActivity.Consume();
+				}
 			}
+			_stepState = 0;
 		}
 
 		ShowDiagram();
 		Console.WriteLine("\n-----------------------\n");
+	}
 
+	private void StartAnimation()
+	{
+		_timer.Change(0, _timerInterval);
+		_runningState = true;
+	}
+
+	private void StopAnimation()
+	{
+		_timer.Change(Timeout.Infinite, Timeout.Infinite);
+		_runningState = false;
+	}
+
+	private void ChangeTimerInterval(string? timerVal)
+	{
+		_timerInterval = Int32.Parse(timerVal);
+		_timer.Change(Timeout.Infinite, _timerInterval);
+	}
+
+
+	public void Dispose()
+	{
+		_timer?.Dispose();
 	}
 }

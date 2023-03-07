@@ -1,5 +1,9 @@
+using System.IO;
 using System.Runtime.InteropServices.ComTypes;
+using ExcelDataReader;
+using System.Text;
 using Microsoft.AspNetCore.Components.Forms;
+using System.Xml.Linq;
 
 namespace BlazorApp.Data;
 
@@ -76,17 +80,19 @@ public class CsvFileReaderService
 
 	public System.Threading.Tasks.Task<CsvData> ReadCsvFileToObjectAsync(System.IO.Stream iStream)
 	{
-
 		return System.Threading.Tasks.Task.Run(() =>
 		{
 			List<List<string>> elements = new();
+
+			char separator = GetSeparator(iStream);
+
 			iStream.Seek(0, SeekOrigin.Begin);
 			using (var reader = new StreamReader(iStream))
 			{
 				while (!reader.EndOfStream)
 				{
 					var line = reader.ReadLine();
-					var values = line?.Split(',');
+					var values = line?.Split(separator);
 
 					elements.Add(values.ToList<string>());
 				}
@@ -96,6 +102,29 @@ public class CsvFileReaderService
 			return ConvertCsvToObjects(elements);
 		});
 
+	}
+
+	private char GetSeparator(System.IO.Stream iStream)
+	{
+		char usedSeparator = ',';
+		List<char> separators = new List<char>{',', ';'};
+		iStream.Seek(0, SeekOrigin.Begin);
+		using var reader = new StreamReader(iStream, leaveOpen:true);
+		var line1 = reader.ReadLine();
+		var line2 = reader.ReadLine();
+		foreach (var separator in separators)
+		{
+			if (line1.Contains(separator))
+			{
+				if (line1.Split(separator).Length == line2.Split(separator).Length)
+				{
+					usedSeparator = separator;
+					break;
+				}
+			}
+		}
+
+		return usedSeparator;
 	}
 
 	private Activity CreateActivityFromList(List<string> activityItems)
@@ -108,6 +137,4 @@ public class CsvFileReaderService
 
 	private Mutex CreateMutexFromList(List<string> mutexItems)
 		=> new Mutex(mutexItems[1]);
-
-
 }

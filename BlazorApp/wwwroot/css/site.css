@@ -67,13 +67,12 @@ a, .btn-link {
     content: "An error has occurred."
 }
 
-
 .chart-area {
     border-style: solid;
     border-width: 1px;
     border-radius: 5px;
     margin-block: 1rem;
-    width: fit-content;
+    width: 100%;
     block-size: fit-content;
 }
 
@@ -107,7 +106,6 @@ a, .btn-link {
     list-style: none;
     padding: 1rem;
     float: left;
-    font-size: 20px;
 }
 
 .activeMutex {
@@ -115,11 +113,14 @@ a, .btn-link {
 }
 
 .upload-area {
-    font-size: 20px;
     margin-block: 1rem;
 }
 
 .control-buttons {
     display: flex;
     gap: 1rem;
+}
+
+.animation-speed-control {
+    width: 300px;
 }

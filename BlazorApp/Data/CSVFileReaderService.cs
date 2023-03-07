@@ -7,78 +7,26 @@ using System.Xml.Linq;
 
 namespace BlazorApp.Data;
 
-public struct CsvData{
+public struct DiagramData{
 
-	public CsvData()
+	public DiagramData()
 	{
 		Tasks = new();
 		Semaphores = new();
 		Mutexes = new();
+		CsvData = new();
 	}
+
 	public List<Task> Tasks { get; set; }
 	public List<Semaphore> Semaphores { get; set; }
 	public List<Mutex> Mutexes { get; set; }
+	public List<List<string>> CsvData { get; set; }
 }
 
 public class CsvFileReaderService
 {
 
-	private CsvData ConvertCsvToObjects(List<List<string>> elements)
-	{
-
-		var csvData = new CsvData();
-		List<Activity> activities = new();
-
-		elements.FindAll(element => element.First() == "Task").ForEach(taskList => csvData.Tasks.Add(CreateTaskFromList(taskList)));
-		elements.FindAll(element => element.First() == "Activity").ForEach(activityList =>
-		{
-			var activity = CreateActivityFromList(activityList);
-			csvData.Tasks.Find(task => task.Name == activityList[1])?.AddActivity(activity);
-			activities.Add(activity);
-		});
-		elements.FindAll(element => element.First() == "Semaphore").ForEach(semaphoreList =>
-		{
-			var existingSemaphore = csvData.Semaphores.Find(semaphore => semaphore.Name == semaphoreList[1]);
-			if (existingSemaphore is null)
-			{
-				existingSemaphore = CreateSemaphoreFromList(semaphoreList);
-				csvData.Semaphores.Add(existingSemaphore);
-			}
-			else
-			{
-				existingSemaphore.IncrementNumberInputs();
-			}
-
-			var outputActivity = activities.Find(activity => activity.Name == semaphoreList[3]);
-			if(outputActivity?.Outputs.Find(output => output.Name == existingSemaphore.Name) is null) outputActivity?.AddOutput(existingSemaphore);
-
-			var inputActivity = activities.Find(activity => activity.Name == semaphoreList[4]);
-			if(inputActivity?.Inputs.Find(input => input.Name == existingSemaphore.Name) is null) inputActivity?.AddInput(existingSemaphore);
-
-			if (inputActivity != null && outputActivity != null)
-			{
-				if (csvData.Tasks.Find(task =>
-					    task.Activities.Contains(inputActivity) && task.Activities.Contains(outputActivity)) !=
-				    null) existingSemaphore.SetActivitySemaphore();
-			}
-		});
-
-		elements.FindAll(element => element.First() == "Mutex").ForEach(mutexList =>
-		{
-			var mutex = CreateMutexFromList(mutexList);
-			csvData.Mutexes.Add(mutex);
-
-			for (int i = 2; i < mutexList.Count; i++)
-			{
-				var activity = activities.Find(activity => activity.Name == mutexList[i]);
-				activity?.AddInput(mutex);
-				activity?.AddOutput(mutex);
-			}
-		});
-		return csvData;
-	}
-
-	public System.Threading.Tasks.Task<CsvData> ReadCsvFileToObjectAsync(System.IO.Stream iStream)
+	public static System.Threading.Tasks.Task<DiagramData> ReadCsvFileToObjectAsync(System.IO.Stream iStream)
 	{
 		return System.Threading.Tasks.Task.Run(() =>
 		{
@@ -104,7 +52,68 @@ public class CsvFileReaderService
 
 	}
 
-	private char GetSeparator(System.IO.Stream iStream)
+	public static System.Threading.Tasks.Task<DiagramData> RestoreInitialState(DiagramData data)
+	{
+		return System.Threading.Tasks.Task.Run(() => ConvertCsvToObjects(data.CsvData));
+	}
+
+	private static DiagramData ConvertCsvToObjects(List<List<string>> elements)
+	{
+
+		var diagramData = new DiagramData();
+		diagramData.CsvData = elements;
+		List<Activity> activities = new();
+
+		elements.FindAll(element => element.First() == "Task").ForEach(taskList => diagramData.Tasks.Add(CreateTaskFromList(taskList)));
+		elements.FindAll(element => element.First() == "Activity").ForEach(activityList =>
+		{
+			var activity = CreateActivityFromList(activityList);
+			diagramData.Tasks.Find(task => task.Name == activityList[1])?.AddActivity(activity);
+			activities.Add(activity);
+		});
+		elements.FindAll(element => element.First() == "Semaphore").ForEach(semaphoreList =>
+		{
+			var existingSemaphore = diagramData.Semaphores.Find(semaphore => semaphore.Name == semaphoreList[1]);
+			if (existingSemaphore is null)
+			{
+				existingSemaphore = CreateSemaphoreFromList(semaphoreList);
+				diagramData.Semaphores.Add(existingSemaphore);
+			}
+			else
+			{
+				existingSemaphore.IncrementNumberInputs();
+			}
+
+			var outputActivity = activities.Find(activity => activity.Name == semaphoreList[3]);
+			if(outputActivity?.Outputs.Find(output => output.Name == existingSemaphore.Name) is null) outputActivity?.AddOutput(existingSemaphore);
+
+			var inputActivity = activities.Find(activity => activity.Name == semaphoreList[4]);
+			if(inputActivity?.Inputs.Find(input => input.Name == existingSemaphore.Name) is null) inputActivity?.AddInput(existingSemaphore);
+
+			if (inputActivity != null && outputActivity != null)
+			{
+				if (diagramData.Tasks.Find(task =>
+					    task.Activities.Contains(inputActivity) && task.Activities.Contains(outputActivity)) !=
+				    null) existingSemaphore.SetActivitySemaphore();
+			}
+		});
+
+		elements.FindAll(element => element.First() == "Mutex").ForEach(mutexList =>
+		{
+			var mutex = CreateMutexFromList(mutexList);
+			diagramData.Mutexes.Add(mutex);
+
+			for (int i = 2; i < mutexList.Count; i++)
+			{
+				var activity = activities.Find(activity => activity.Name == mutexList[i]);
+				activity?.AddInput(mutex);
+				activity?.AddOutput(mutex);
+			}
+		});
+		return diagramData;
+	}
+
+	private static char GetSeparator(System.IO.Stream iStream)
 	{
 		char usedSeparator = ',';
 		List<char> separators = new List<char>{',', ';'};
@@ -127,14 +136,14 @@ public class CsvFileReaderService
 		return usedSeparator;
 	}
 
-	private Activity CreateActivityFromList(List<string> activityItems)
+	private static Activity CreateActivityFromList(List<string> activityItems)
 		=> new Activity(Int32.Parse(activityItems[3]), activityItems[2]);
-	private Task CreateTaskFromList(List<string> taskItems)
+	private static Task CreateTaskFromList(List<string> taskItems)
 		=> new Task(taskItems[1]);
 
-	private Semaphore CreateSemaphoreFromList(List<string> semaphoreItems)
+	private static Semaphore CreateSemaphoreFromList(List<string> semaphoreItems)
 		=> new Semaphore(Int32.Parse(semaphoreItems[2]), semaphoreItems[1]);
 
-	private Mutex CreateMutexFromList(List<string> mutexItems)
+	private static Mutex CreateMutexFromList(List<string> mutexItems)
 		=> new Mutex(mutexItems[1]);
 }

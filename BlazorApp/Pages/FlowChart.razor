@@ -6,9 +6,9 @@
 @using Microsoft.Extensions.Logging
 @using System.Text;
 @using Task = System.Threading.Tasks.Task
+@using System.Diagnostics
 @inject ILogger<FlowChart> Logger
 @inject IWebHostEnvironment Environment
-@inject CsvFileReaderService ReaderService
 @inject IJSRuntime js
 @implements IDisposable
 
@@ -20,22 +20,24 @@
 	<label>
 		Upload CSV File:
 	</label>
-	<br/>
+	<br />
 	<InputFile OnChange="@LoadFiles" />
 </div>
 
-<div style="display: @(_diagramData.Tasks.Count > 0 ? "" : "none")">
+<div style="visibility: @(_diagramData.Tasks.Count > 0 ? "" : "hidden")">
 	<div class="control-buttons">
-		<button class="btn btn-primary" @onclick="StartAnimation">Start</button>
-		<button class="btn btn-primary" @onclick="StopAnimation">Stop</button>
-		<button class="btn btn-primary" @onclick="Step">Step</button>
-	</div>
-	<label>Animation interval: @_timerInterval ms</label>
-	<br />
-	<input type="range" min="100" max="2000" step="10"
-	       value="@_timerInterval" @oninput="@((args) => ChangeTimerInterval(args.Value.ToString()))"
-	       disabled=@_runningState/>
+		<button class="btn btn-primary" @onclick="StartAnimation" disabled=@_runningState>Start</button>
+		<button class="btn btn-primary" @onclick="StopAnimation" disabled=@(!_runningState)>Stop</button>
+		<button class="btn btn-primary" @onclick="Step" disabled=@_runningState>Step</button>
+		<button class="btn btn-primary" @onclick="Reset">Reset</button>
 
+	</div>
+	<div class="animation-speed-control">
+		<input type="range" min="100" max="2000" step="10"
+			   value="@_timerInterval" @oninput="@((args) => ChangeTimerInterval(args.Value?.ToString()))"
+			   disabled=@_runningState />
+		<label>Animation interval: @_timerInterval ms</label>
+	</div>
 
 	<div class="chart-area" @ref="_renderTo"></div>
 
@@ -58,6 +60,9 @@
 					<li class="@(!mutex.CanDecrement() ? "activeMutex" : "")">@mutex.Name: @mutex.State</li>
 				}
 			</ul>
+		</div>
+		<div>
+			<label>Time units passed: @_timeUnitsPassed</label>
 		</div>
 	</div>
 </div>
@@ -82,23 +87,22 @@ else
 	}
 }
 
-
 @code {
-	private readonly long _maxFileSize = 1024 * 1024 * 3;
-	private readonly int _maxAllowedFiles = 1;
+	private const long MaxFileSize = 1024 * 1024 * 3;
+	private const int MaxAllowedFiles = 1;
 	private bool _isLoading;
 	private List<string> _errors = new();
-	private CsvData _diagramData = new();
-	private List<Semaphore> _startSemaphores = new();
+	private DiagramData _diagramData = new();
 	private bool _runningState = false;
 	private int _timerInterval = 1000;
-	private System.Threading.Timer _timer;
+	private long _timeUnitsPassed = 0;
+	private Timer? _timer;
 	private int _stepState = 0;
 
 	protected override void OnInitialized()
 	{
 		base.OnInitialized();
-		_timer = new System.Threading.Timer(async _ =>
+		_timer = new Timer(async _ =>
 		{
 			Step();
 		}, null, Timeout.Infinite, _timerInterval);
@@ -137,7 +141,8 @@ edge [
 
 		// call js method to render the diagram
 		// the js function can be found in Pages\_Host.cshtml
-		await js.InvokeVoidAsync("renderDot", diagram, _renderTo);
+		js.InvokeVoidAsync("renderDot", diagram, _renderTo);
+		InvokeAsync(StateHasChanged);
 	}
 
 	private void AddMutexes(StringBuilder builder)
@@ -197,7 +202,7 @@ edge [
 				tempNumber++;
 			}
 			else
-				{
+			{
 				builder.Append(
 					@$"""{semaphore.Inputs[0].Name}""->""{semaphore.Outputs[0].Name}"" [label=""{semaphore.Name}""");
 				if (semaphore.IsActivitySemaphore)
@@ -239,20 +244,20 @@ edge [
 		_isLoading = true;
 		_errors.Clear();
 
-		if (e.FileCount > _maxAllowedFiles)
+		if (e.FileCount > MaxAllowedFiles)
 		{
-			_errors.Add($"Error: Attempting to upload {_errors.Count} files, but only {_maxAllowedFiles} files allowed!");
+			_errors.Add($"Error: Attempting to upload {_errors.Count} files, but only {MaxAllowedFiles} files allowed!");
 			return;
 		}
 
-		foreach (var file in e.GetMultipleFiles(_maxAllowedFiles))
+		foreach (var file in e.GetMultipleFiles(MaxAllowedFiles))
 		{
 			try
 			{
 				await using MemoryStream fs = new();
-				await file.OpenReadStream(_maxFileSize).CopyToAsync(fs);
+				await file.OpenReadStream(MaxFileSize).CopyToAsync(fs);
 
-				_diagramData = await ReaderService.ReadCsvFileToObjectAsync(fs);
+				_diagramData = await CsvFileReaderService.ReadCsvFileToObjectAsync(fs);
 			}
 			catch (Exception ex)
 			{
@@ -262,19 +267,9 @@ edge [
 
 		_isLoading = false;
 
-		SaveStartSemaphores();
-
-		ShowDiagram();
+		Reset();
 	}
 
-	private void SaveStartSemaphores()
-	{
-		foreach (var semaphore in _diagramData.Semaphores)
-		{
-			if(semaphore.State > 0)
-				_startSemaphores.Add(semaphore);
-		}
-	}
 
 	private void Step()
 	{
@@ -288,6 +283,7 @@ edge [
 					taskActivity.Process();
 				}
 			}
+			_timeUnitsPassed++;
 		}
 		else
 		{
@@ -307,20 +303,33 @@ edge [
 
 	private void StartAnimation()
 	{
-		_timer.Change(0, _timerInterval);
+		_timer?.Change(0, _timerInterval);
 		_runningState = true;
 	}
 
 	private void StopAnimation()
 	{
-		_timer.Change(Timeout.Infinite, Timeout.Infinite);
+		_timer?.Change(Timeout.Infinite, Timeout.Infinite);
 		_runningState = false;
 	}
 
 	private void ChangeTimerInterval(string? timerVal)
 	{
-		_timerInterval = Int32.Parse(timerVal);
-		_timer.Change(Timeout.Infinite, _timerInterval);
+		if (timerVal == null)
+			_timerInterval = 1000;
+		else
+			_timerInterval = Int32.Parse(timerVal);
+		_timer?.Change(Timeout.Infinite, _timerInterval);
+	}
+
+	private async void Reset()
+	{
+		_timer?.Change(Timeout.Infinite, Timeout.Infinite);
+		_runningState = false;
+		_stepState = 0;
+		_timeUnitsPassed = 0;
+		_diagramData = await CsvFileReaderService.RestoreInitialState(_diagramData);
+		ShowDiagram();
 	}
 
 

@@ -46,10 +46,16 @@
 <script>
 		window.renderDot = (model, element) => {
 			var graphviz = d3.select(element)
-				.graphviz();
+					.graphviz();
 
+			let box = document.querySelector('.chart-area');
+			let width = box.clientWidth;
+			let margin = 4;
+			console.log(width);
+
+			graphviz.width(width - margin);
 			graphviz.renderDot(model);
-			graphviz.fit(true)
+			graphviz.fit(true);
 		}
 	</script>
 </body>

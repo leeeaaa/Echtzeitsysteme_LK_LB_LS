@@ -18,7 +18,7 @@
 	<label>
 		Upload CSV File:
 	</label>
-	<br/>
+	<br />
 	<InputFile OnChange="@LoadFiles" />
 </div>
 
@@ -97,65 +97,111 @@ edge [
 
 		StringBuilder builder = new StringBuilder(diagram);
 
-		foreach (Data.Task task in diagramData.Tasks)
-		{
-			foreach (var taskActivity in task.Activities)
-			{
-				if (taskActivity.IsActive)
-				{
-					builder.AppendLine(@$"""{taskActivity.Name}"" [label=""{task.Name} - {taskActivity.Name}"", color=""green"", penwidth=2];");
-				}
-				else
-				{
-					builder.AppendLine(@$"""{taskActivity.Name}"" [label=""{task.Name} - {taskActivity.Name}""];");
-				}
+		AddTasks(builder);
 
-			}
-		}
+		AddSemaphores(builder);
 
-		foreach (Data.Semaphore semaphore in diagramData.Semaphores)
-		{
-			int inputIt = 0;
-			int outputIt = 0;
-			while (inputIt < semaphore.Inputs.Count && outputIt < semaphore.Outputs.Count)
-			{
-				builder.Append(@$"""{semaphore.Inputs[inputIt].Name}""->""{semaphore.Outputs[outputIt].Name}"" [label=""{semaphore.Name}""");
+		AddMutexes(builder);
 
-				if (semaphore.IsActivitySemaphore)
-					builder.Append(@", arrowhead=""onormal""");
-				else
-					builder.Append(@", arrowhead=""normal""");
+		// finalize string
+		builder.Append("}");
+		diagram = builder.ToString();
 
-				if(semaphore.CanDecrement())
-					builder.Append(@", color=""green"", penwidth=2");
+		// call js method to render the diagram
+		// the js function can be found in Pages\_Host.cshtml
+		await js.InvokeVoidAsync("renderDot", diagram, _renderTo);
+	}
 
-				builder.AppendLine("];");
-
-				if (inputIt < semaphore.Inputs.Count - 1) inputIt++;
-				else if (outputIt < semaphore.Outputs.Count - 1) outputIt++;
-				else break;
-			}
-		}
-
-		foreach(Data.Mutex mutex in diagramData.Mutexes)
+	private void AddMutexes(StringBuilder builder)
+	{
+		foreach (Data.Mutex mutex in diagramData.Mutexes)
 		{
 			if (mutex.CanDecrement())
 				builder.AppendLine(@$"""{mutex.Name}"" [label=""{mutex.Name}"",shape=hexagon];");
 			else
 				builder.AppendLine(@$"""{mutex.Name}"" [label=""{mutex.Name}"",shape=hexagon, color=""red"", penwidth=2];");
 
-			foreach(var activity in mutex.Inputs)
+			foreach (var activity in mutex.Inputs)
 			{
-				if(!mutex.CanDecrement() && activity.IsActive)
-					builder.AppendLine(@$"""{activity.Name}"" -> ""{mutex.Name}"" [arrowhead=none, color=""red"", penwidth=2];");
+				if (!mutex.CanDecrement() && activity.IsActive)
+					builder.AppendLine(
+						@$"""{activity.Name}"" -> ""{mutex.Name}"" [arrowhead=none, color=""red"", penwidth=2];");
 				else
 					builder.AppendLine(@$"""{activity.Name}"" -> ""{mutex.Name}"" [arrowhead=none];");
 			}
 		}
+	}
 
-		builder.Append("}");
-		diagram = builder.ToString();
-		await js.InvokeVoidAsync("renderDot", diagram, _renderTo);
+	private void AddSemaphores(StringBuilder builder)
+	{
+		var tempNumber = 0;
+		foreach (Data.Semaphore semaphore in diagramData.Semaphores)
+		{
+			if (semaphore.Inputs.Count > 1 || semaphore.Outputs.Count > 1)
+			{
+				builder.Append(@$"""{tempNumber}"" [shape=point];");
+
+				foreach (var input in semaphore.Inputs)
+				{
+					builder.Append(@$"""{input.Name}""->""{tempNumber}"" [label=""{semaphore.Name}"", arrowhead=""none""");
+
+					if (semaphore.CanDecrement())
+						builder.Append(@", color=""green"", penwidth=2");
+
+					builder.AppendLine("];");
+				}
+
+				foreach (var output in semaphore.Outputs)
+				{
+					builder.Append(@$"""{tempNumber}""->""{output.Name}"" [label=""{semaphore.Name}""");
+
+					if (semaphore.IsActivitySemaphore)
+						builder.Append(@", arrowhead=""onormal""");
+					else
+						builder.Append(@", arrowhead=""normal""");
+
+					if (semaphore.CanDecrement())
+						builder.Append(@", color=""green"", penwidth=2");
+
+					builder.AppendLine("];");
+				}
+
+				tempNumber++;
+			}
+			else
+			{
+				builder.Append(
+					@$"""{semaphore.Inputs[0].Name}""->""{semaphore.Outputs[0].Name}"" [label=""{semaphore.Name}""");
+				if (semaphore.IsActivitySemaphore)
+					builder.Append(@", arrowhead=""onormal""");
+				else
+					builder.Append(@", arrowhead=""normal""");
+
+				if (semaphore.CanDecrement())
+					builder.Append(@", color=""green"", penwidth=2");
+
+				builder.AppendLine("];");
+			}
+		}
+	}
+
+	private void AddTasks(StringBuilder builder)
+	{
+		foreach (Data.Task task in diagramData.Tasks)
+		{
+			foreach (var taskActivity in task.Activities)
+			{
+				if (taskActivity.IsActive)
+				{
+					builder.AppendLine(
+						@$"""{taskActivity.Name}"" [label=""<f0> {task.Name} |<f1> {taskActivity.Name}"", color=""green"", penwidth=2];");
+				}
+				else
+				{
+					builder.AppendLine(@$"""{taskActivity.Name}"" [label=""<f0> {task.Name} |<f1> {taskActivity.Name}""];");
+				}
+			}
+		}
 	}
 
 	private ElementReference _renderTo;
@@ -175,7 +221,6 @@ edge [
 		{
 			try
 			{
-
 				await using MemoryStream fs = new();
 				await file.OpenReadStream(maxFileSize).CopyToAsync(fs);
 
@@ -193,7 +238,6 @@ edge [
 
 	private void Step()
 	{
-
 		foreach (Data.Task task in diagramData.Tasks)
 		{
 			foreach (var taskActivity in task.Activities)
@@ -202,7 +246,6 @@ edge [
 				taskActivity.Process();
 			}
 		}
-		
 
 		foreach (Data.Task task in diagramData.Tasks)
 		{
@@ -214,6 +257,6 @@ edge [
 
 		ShowDiagram();
 		Console.WriteLine("\n-----------------------\n");
-		
+
 	}
 }

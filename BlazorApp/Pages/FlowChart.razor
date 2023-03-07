@@ -22,46 +22,46 @@
 	<InputFile OnChange="@LoadFiles" />
 </div>
 
-@if (diagramData.Tasks.Count > 0)
-{
+<div style="display: @(_diagramData.Tasks.Count > 0 ? "" : "none")">
 	<button class="btn btn-primary" @onclick="Step">Step</button>
-}
-<div class="chart-area" @ref="_renderTo"></div>
-<div class="info-container">
-	<div class="semaphore-list">
-		<p>Semaphores</p>
-		<ul>
-			@foreach (var semaphore in diagramData.Semaphores)
-			{
-				<li class="@(semaphore.CanDecrement() ? "activeSemaphore" : "")">@semaphore.Name: @semaphore.State</li>
-			}
-		</ul>
-	</div>
+	<div class="chart-area" @ref="_renderTo"></div>
 
-	<div class="mutex-list">
-		<p>Mutexes</p>
-		<ul>
-			@foreach (var mutex in diagramData.Mutexes)
-			{
-				<li class="@(!mutex.CanDecrement() ? "activeMutex" : "")">@mutex.Name: @mutex.State</li>
-			}
-		</ul>
+	<div class="info-container">
+		<div class="semaphore-list">
+			<p>Semaphores</p>
+			<ul>
+				@foreach (var semaphore in _diagramData.Semaphores)
+				{
+					<li class="@(semaphore.CanDecrement() ? "activeSemaphore" : "")">@semaphore.Name: @semaphore.State</li>
+				}
+			</ul>
+		</div>
+
+		<div class="mutex-list">
+			<p>Mutexes</p>
+			<ul>
+				@foreach (var mutex in _diagramData.Mutexes)
+				{
+					<li class="@(!mutex.CanDecrement() ? "activeMutex" : "")">@mutex.Name: @mutex.State</li>
+				}
+			</ul>
+		</div>
 	</div>
 </div>
 
 
 
-@if (isLoading)
+@if (_isLoading)
 {
 	<p>Loading...</p>
 }
 else
 {
-	@if (errors.Count > 0)
+	@if (_errors.Count > 0)
 	{
 		<h2>Errors</h2>
 		<ul class="text-danger">
-			@foreach (var error in errors)
+			@foreach (var error in _errors)
 			{
 				<li>@error</li>
 			}
@@ -71,11 +71,12 @@ else
 
 
 @code {
-	private long maxFileSize = 1024 * 1024 * 3;
-	private int maxAllowedFiles = 1;
-	private bool isLoading;
-	private List<string> errors = new();
-	private CsvData diagramData = new();
+	private readonly long _maxFileSize = 1024 * 1024 * 3;
+	private readonly int _maxAllowedFiles = 1;
+	private bool _isLoading;
+	private List<string> _errors = new();
+	private CsvData _diagramData = new();
+	private List<Semaphore> _startSemaphores = new();
 
 
 	private async void ShowDiagram()
@@ -88,8 +89,9 @@ node[fontname = ""Helvetica,Arial,sans-serif""]
 edge[fontname = ""Helvetica,Arial,sans-serif""]
 graph [rankdir = ""LR""];
 node [
-fontsize = ""16""
-shape = ""record""
+fontsize=""16""
+shape =""record""
+label=""""
 ];
 edge [
 ];
@@ -114,7 +116,7 @@ edge [
 
 	private void AddMutexes(StringBuilder builder)
 	{
-		foreach (Data.Mutex mutex in diagramData.Mutexes)
+		foreach (Data.Mutex mutex in _diagramData.Mutexes)
 		{
 			if (mutex.CanDecrement())
 				builder.AppendLine(@$"""{mutex.Name}"" [label=""{mutex.Name}"",shape=hexagon];");
@@ -135,11 +137,11 @@ edge [
 	private void AddSemaphores(StringBuilder builder)
 	{
 		var tempNumber = 0;
-		foreach (Data.Semaphore semaphore in diagramData.Semaphores)
+		foreach (Data.Semaphore semaphore in _diagramData.Semaphores)
 		{
 			if (semaphore.Inputs.Count > 1 || semaphore.Outputs.Count > 1)
 			{
-				builder.Append(@$"""{tempNumber}"" [shape=point];");
+				builder.AppendLine(@$"""{tempNumber}"" [shape=point];");
 
 				foreach (var input in semaphore.Inputs)
 				{
@@ -169,7 +171,7 @@ edge [
 				tempNumber++;
 			}
 			else
-			{
+				{
 				builder.Append(
 					@$"""{semaphore.Inputs[0].Name}""->""{semaphore.Outputs[0].Name}"" [label=""{semaphore.Name}""");
 				if (semaphore.IsActivitySemaphore)
@@ -187,7 +189,7 @@ edge [
 
 	private void AddTasks(StringBuilder builder)
 	{
-		foreach (Data.Task task in diagramData.Tasks)
+		foreach (Data.Task task in _diagramData.Tasks)
 		{
 			foreach (var taskActivity in task.Activities)
 			{
@@ -208,37 +210,49 @@ edge [
 
 	private async System.Threading.Tasks.Task LoadFiles(InputFileChangeEventArgs e)
 	{
-		isLoading = true;
-		errors.Clear();
+		_isLoading = true;
+		_errors.Clear();
 
-		if (e.FileCount > maxAllowedFiles)
+		if (e.FileCount > _maxAllowedFiles)
 		{
-			errors.Add($"Error: Attempting to upload {errors.Count} files, but only {maxAllowedFiles} files allowed!");
+			_errors.Add($"Error: Attempting to upload {_errors.Count} files, but only {_maxAllowedFiles} files allowed!");
 			return;
 		}
 
-		foreach (var file in e.GetMultipleFiles(maxAllowedFiles))
+		foreach (var file in e.GetMultipleFiles(_maxAllowedFiles))
 		{
 			try
 			{
 				await using MemoryStream fs = new();
-				await file.OpenReadStream(maxFileSize).CopyToAsync(fs);
+				await file.OpenReadStream(_maxFileSize).CopyToAsync(fs);
 
-				diagramData = await ReaderService.ReadCsvFileToObjectAsync(fs);
+				_diagramData = await ReaderService.ReadCsvFileToObjectAsync(fs);
 			}
 			catch (Exception ex)
 			{
-				errors.Add($"File: {file.Name} Error: {ex.Message}");
+				_errors.Add($"File: {file.Name} Error: {ex.Message}");
 			}
 		}
 
-		isLoading = false;
+		_isLoading = false;
+
+		SaveStartSemaphores();
+
 		ShowDiagram();
+	}
+
+	private void SaveStartSemaphores()
+	{
+		foreach (var semaphore in _diagramData.Semaphores)
+		{
+			if(semaphore.State > 0)
+				_startSemaphores.Add(semaphore);
+		}
 	}
 
 	private void Step()
 	{
-		foreach (Data.Task task in diagramData.Tasks)
+		foreach (Data.Task task in _diagramData.Tasks)
 		{
 			foreach (var taskActivity in task.Activities)
 			{
@@ -247,7 +261,7 @@ edge [
 			}
 		}
 
-		foreach (Data.Task task in diagramData.Tasks)
+		foreach (Data.Task task in _diagramData.Tasks)
 		{
 			foreach (var taskActivity in task.Activities)
 			{

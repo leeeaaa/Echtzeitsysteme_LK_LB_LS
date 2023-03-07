@@ -69,12 +69,12 @@ a, .btn-link {
 
 
 .chart-area {
-    width: 100%;
-    padding: 1rem;
     border-style: solid;
     border-width: 1px;
     border-radius: 5px;
     margin-block: 1rem;
+    width: fit-content;
+    block-size: fit-content;
 }
 
 

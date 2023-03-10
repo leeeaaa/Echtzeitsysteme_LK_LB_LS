@@ -20,14 +20,14 @@
 			Upload CSV File:
 		</label>
 		<br />
-		<InputFile OnChange="@LoadFiles" />
+		<InputFile OnChange="@LoadFiles"/>
 	</div>
 	<div class="control-section">
 		
-		<button class="btn btn-primary" @onclick="StartAnimation" disabled=@_runningState>Start</button>
-		<button class="btn btn-primary" @onclick="StopAnimation" disabled=@(!_runningState)>Stop</button>
-		<button class="btn btn-primary" @onclick="Step" disabled=@_runningState>Step</button>
-		<button class="btn btn-primary" @onclick="Reset">Reset</button>
+		<button class="button" @onclick="StartAnimation" disabled=@_runningState>Start</button>
+		<button class="button" @onclick="StopAnimation" disabled=@(!_runningState)>Stop</button>
+		<button class="button" @onclick="Step" disabled=@_runningState>Step</button>
+		<button class="button" @onclick="Reset">Reset</button>
 		<div class="animation-speed-control">
 			<input type="range" min="100" max="2000" step="10"
 			       value="@_timerInterval" @oninput="@((args) => ChangeTimerInterval(args.Value?.ToString()))"
@@ -41,7 +41,7 @@
 	<div class="chart-area" @ref="_renderTo"></div>
 
 	<div class="info-container">
-		<div class="semaphore-list">
+		<div class="card">
 			<p>Semaphores</p>
 			<ul>
 				@foreach (var semaphore in _diagramData.Semaphores)
@@ -51,7 +51,7 @@
 			</ul>
 		</div>
 
-		<div class="mutex-list">
+		<div class="card">
 			<p>Mutexes</p>
 			<ul>
 				@foreach (var mutex in _diagramData.Mutexes)
@@ -60,7 +60,7 @@
 				}
 			</ul>
 		</div>
-		<div>
+		<div class="card">
 			<label>Time units passed: @_timeUnitsPassed</label>
 		</div>
 	</div>
@@ -95,6 +95,8 @@ else
 	private long _timeUnitsPassed = 0;
 	private Timer? _timer;
 	private int _stepState = 0;
+
+	public string FileName { get; set; }
 
 	protected override void OnInitialized()
 	{

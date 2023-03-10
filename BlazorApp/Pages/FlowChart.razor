@@ -224,15 +224,19 @@ edge [
 		{
 			foreach (var taskActivity in task.Activities)
 			{
+				builder.Append(@$"""{taskActivity.Name}"" [label=""<f0> {task.Name} |<f1> {taskActivity.Name} ");
+
+				if (taskActivity.ProcessDuration > 1)
+					builder.Append(@$"|<f2> {taskActivity.ProcessTime}/{taskActivity.ProcessDuration}""");
+				else
+					builder.Append(@$"|<f2> {taskActivity.ProcessDuration}""");
+
 				if (taskActivity.IsActive)
 				{
-					builder.AppendLine(
-						@$"""{taskActivity.Name}"" [label=""<f0> {task.Name} |<f1> {taskActivity.Name}"", color=""green"", penwidth=2];");
+					builder.Append(@$", color=""green"", penwidth=2");
 				}
-				else
-				{
-					builder.AppendLine(@$"""{taskActivity.Name}"" [label=""<f0> {task.Name} |<f1> {taskActivity.Name}""];");
-				}
+
+				builder.AppendLine("];");
 			}
 		}
 	}
@@ -279,22 +283,23 @@ edge [
 			{
 				foreach (var taskActivity in task.Activities)
 				{
-					Console.WriteLine($"Activity: '{taskActivity.Name}', state: {taskActivity.CanProcess}");
-					taskActivity.Process();
+					taskActivity.Consume();
 				}
 			}
-			_timeUnitsPassed++;
 		}
 		else
 		{
+			
 			foreach (Data.Task task in _diagramData.Tasks)
 			{
 				foreach (var taskActivity in task.Activities)
 				{
-					taskActivity.Consume();
+					Console.WriteLine($"Activity: '{taskActivity.Name}', state: {taskActivity.CanProcess}");
+					taskActivity.Process();
 				}
 			}
 			_stepState = 0;
+			_timeUnitsPassed++;
 		}
 
 		ShowDiagram();

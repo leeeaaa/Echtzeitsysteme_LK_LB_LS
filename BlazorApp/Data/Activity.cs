@@ -14,9 +14,9 @@ public class Activity
 		private set;
 	}
 
-	private readonly int _processDuration;
+	public int ProcessDuration { private set; get; } = 1;
 
-	private int _processTime = 0;
+	public int ProcessTime { private set; get; } = 0;
 
 	public bool CanProcess { get; private set; } = false;
 
@@ -34,7 +34,7 @@ public class Activity
 	{
 		Inputs = inputs;
 		Outputs = outputs;
-		_processDuration = processDuration;
+		ProcessDuration = processDuration;
 		Name = name;
 	}
 
@@ -53,7 +53,7 @@ public class Activity
 
 	public void Consume()
 	{
-		if (_processTime == 0)
+		if (ProcessTime == 0)
 		{
 			CanProcess = Inputs.TrueForAll(input => input.CanDecrement());
 			if (CanProcess)
@@ -67,17 +67,17 @@ public class Activity
 
 	public void Process()
 	{
-		if (_processTime > 0 || CanProcess) _processTime++;
-		if (_processTime == _processDuration)
+		if (ProcessTime > 0 || CanProcess) ProcessTime++;
+		if (ProcessTime == ProcessDuration)
 		{
 			Outputs.ForEach(output => { output.Increment();
 			Console.WriteLine(output.Name); });
 			
-			_processTime = 0;
+			ProcessTime = 0;
 		}
 		CanProcess = false;
 	}
 
-	public bool IsActive { get => _processTime > 0 || CanProcess; }
+	public bool IsActive { get => ProcessTime > 0 || CanProcess; }
 
 }

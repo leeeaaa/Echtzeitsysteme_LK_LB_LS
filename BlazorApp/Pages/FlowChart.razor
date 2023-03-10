@@ -43,22 +43,27 @@
 	<div class="info-container">
 		<div class="card">
 			<p>Semaphores</p>
-			<ul>
+			<div class="list">
 				@foreach (var semaphore in _diagramData.Semaphores)
 				{
-					<li class="@(semaphore.CanDecrement() ? "activeSemaphore" : "")">@semaphore.Name: @semaphore.State</li>
+
+					<div class="list-item">
+						<p class="@(semaphore.CanDecrement() ? "activeSemaphore" : "")">@semaphore.Name: @semaphore.State</p>
+					</div>
 				}
-			</ul>
+			</div>
 		</div>
 
 		<div class="card">
 			<p>Mutexes</p>
-			<ul>
+			<div class="list">
 				@foreach (var mutex in _diagramData.Mutexes)
 				{
-					<li class="@(!mutex.CanDecrement() ? "activeMutex" : "")">@mutex.Name: @mutex.State</li>
+					<div class="list-item">
+						<p class="@(!mutex.CanDecrement() ? "activeMutex" : "")">@mutex.Name: @mutex.State</p>
+					</div>
 				}
-			</ul>
+			</div>
 		</div>
 		<div class="card">
 			<label>Time units passed: @_timeUnitsPassed</label>
@@ -275,30 +280,28 @@ edge [
 
 	private void Step()
 	{
-		if (_stepState++ == 0)
+
+		foreach (Data.Task task in _diagramData.Tasks)
 		{
-			foreach (Data.Task task in _diagramData.Tasks)
+			foreach (var taskActivity in task.Activities)
 			{
-				foreach (var taskActivity in task.Activities)
-				{
-					taskActivity.Consume();
-				}
+				taskActivity.Consume();
 			}
 		}
-		else
+
+		ShowDiagram();
+		Thread.Sleep(_timerInterval);
+
+		foreach (Data.Task task in _diagramData.Tasks)
 		{
-			
-			foreach (Data.Task task in _diagramData.Tasks)
+			foreach (var taskActivity in task.Activities)
 			{
-				foreach (var taskActivity in task.Activities)
-				{
-					Console.WriteLine($"Activity: '{taskActivity.Name}', state: {taskActivity.CanProcess}");
-					taskActivity.Process();
-				}
+				Console.WriteLine($"Activity: '{taskActivity.Name}', state: {taskActivity.CanProcess}");
+				taskActivity.Process();
 			}
-			_stepState = 0;
-			_timeUnitsPassed++;
 		}
+		_timeUnitsPassed++;
+	
 
 		ShowDiagram();
 		Console.WriteLine("\n-----------------------\n");

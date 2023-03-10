@@ -23,16 +23,15 @@
 		<InputFile OnChange="@LoadFiles"/>
 	</div>
 	<div class="control-section">
-		
-		<button class="button" @onclick="StartAnimation" disabled=@_runningState>Start</button>
-		<button class="button" @onclick="StopAnimation" disabled=@(!_runningState)>Stop</button>
-		<button class="button" @onclick="Step" disabled=@_runningState>Step</button>
-		<button class="button" @onclick="Reset">Reset</button>
+		<button class="button" @onclick="StartAnimation" disabled=@(_runningState || _stepMode || !_chartLoaded)>Start</button>
+		<button class="button" @onclick="StopAnimation" disabled=@(!_runningState || _stepMode || !_chartLoaded)>Stop</button>
+		<button class="button" @onclick="StepAnimation" disabled=@(_runningState || _stepMode || !_chartLoaded)>Step</button>
+		<button class="button" @onclick="Reset" disabled=@(_runningState || _stepMode || !_chartLoaded)>Reset</button>
 		<div class="animation-speed-control">
 			<input type="range" min="100" max="2000" step="10"
 			       value="@_timerInterval" @oninput="@((args) => ChangeTimerInterval(args.Value?.ToString()))"
 			       disabled=@_runningState />
-			<label>Animation interval: @_timerInterval ms</label>
+			<label>Time interval: @_timerInterval ms</label>
 		</div>
 	</div>
 </div>
@@ -99,9 +98,11 @@ else
 	private int _timerInterval = 1000;
 	private long _timeUnitsPassed = 0;
 	private Timer? _timer;
-	private int _stepState = 0;
+	private bool _stepMode = false;
+	private int _animationState = 0;
+	private bool _shouldStop;
 
-	public string FileName { get; set; }
+	private bool _chartLoaded { get; set; }
 
 	protected override void OnInitialized()
 	{
@@ -273,6 +274,7 @@ edge [
 		}
 
 		_isLoading = false;
+		_chartLoaded = true;
 
 		Reset();
 	}
@@ -280,31 +282,46 @@ edge [
 
 	private void Step()
 	{
-
-		foreach (Data.Task task in _diagramData.Tasks)
+		if (_animationState++ == 0)
 		{
-			foreach (var taskActivity in task.Activities)
+			foreach (Data.Task task in _diagramData.Tasks)
 			{
-				taskActivity.Consume();
+				foreach (var taskActivity in task.Activities)
+				{
+					taskActivity.Consume();
+				}
 			}
 		}
-
-		ShowDiagram();
-		Thread.Sleep(_timerInterval);
-
-		foreach (Data.Task task in _diagramData.Tasks)
+		else
 		{
-			foreach (var taskActivity in task.Activities)
+			foreach (Data.Task task in _diagramData.Tasks)
 			{
-				Console.WriteLine($"Activity: '{taskActivity.Name}', state: {taskActivity.CanProcess}");
-				taskActivity.Process();
+				foreach (var taskActivity in task.Activities)
+				{
+					Console.WriteLine($"Activity: '{taskActivity.Name}', state: {taskActivity.CanProcess}");
+					taskActivity.Process();
+				}
+			}
+			_timeUnitsPassed++;
+			_animationState=0;
+			if (_stepMode || _shouldStop)
+			{
+				_timer?.Change(Timeout.Infinite, Timeout.Infinite);
+				_runningState = false;
+				_stepMode = false;
+				_shouldStop = false;
 			}
 		}
-		_timeUnitsPassed++;
-	
 
 		ShowDiagram();
 		Console.WriteLine("\n-----------------------\n");
+		
+	}
+
+	private void StepAnimation()
+	{
+		_stepMode = true;
+		StartAnimation();
 	}
 
 	private void StartAnimation()
@@ -315,8 +332,7 @@ edge [
 
 	private void StopAnimation()
 	{
-		_timer?.Change(Timeout.Infinite, Timeout.Infinite);
-		_runningState = false;
+		_shouldStop = true;
 	}
 
 	private void ChangeTimerInterval(string? timerVal)
@@ -332,7 +348,7 @@ edge [
 	{
 		_timer?.Change(Timeout.Infinite, Timeout.Infinite);
 		_runningState = false;
-		_stepState = 0;
+		_stepMode = false;
 		_timeUnitsPassed = 0;
 		_diagramData = await CsvFileReaderService.RestoreInitialState(_diagramData);
 		ShowDiagram();

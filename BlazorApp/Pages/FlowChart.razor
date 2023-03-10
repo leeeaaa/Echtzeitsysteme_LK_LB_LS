@@ -12,33 +12,32 @@
 @inject IJSRuntime js
 @implements IDisposable
 
-<PageTitle>Flow Chart</PageTitle>
+<PageTitle>Flow Chart Visualizer</PageTitle>
 
-<h1>FlowChart</h1>
-
-<div class="upload-area">
-	<label>
-		Upload CSV File:
-	</label>
-	<br />
-	<InputFile OnChange="@LoadFiles" />
-</div>
-
-<div style="visibility: @(_diagramData.Tasks.Count > 0 ? "" : "hidden")">
-	<div class="control-buttons">
+<div class="menu-bar">
+	<div class="upload-area">
+		<label>
+			Upload CSV File:
+		</label>
+		<br />
+		<InputFile OnChange="@LoadFiles" />
+	</div>
+	<div class="control-section">
+		
 		<button class="btn btn-primary" @onclick="StartAnimation" disabled=@_runningState>Start</button>
 		<button class="btn btn-primary" @onclick="StopAnimation" disabled=@(!_runningState)>Stop</button>
 		<button class="btn btn-primary" @onclick="Step" disabled=@_runningState>Step</button>
 		<button class="btn btn-primary" @onclick="Reset">Reset</button>
-
+		<div class="animation-speed-control">
+			<input type="range" min="100" max="2000" step="10"
+			       value="@_timerInterval" @oninput="@((args) => ChangeTimerInterval(args.Value?.ToString()))"
+			       disabled=@_runningState />
+			<label>Animation interval: @_timerInterval ms</label>
+		</div>
 	</div>
-	<div class="animation-speed-control">
-		<input type="range" min="100" max="2000" step="10"
-			   value="@_timerInterval" @oninput="@((args) => ChangeTimerInterval(args.Value?.ToString()))"
-			   disabled=@_runningState />
-		<label>Animation interval: @_timerInterval ms</label>
-	</div>
+</div>
 
+<div class="content">
 	<div class="chart-area" @ref="_renderTo"></div>
 
 	<div class="info-container">
@@ -66,8 +65,6 @@
 		</div>
 	</div>
 </div>
-
-
 
 @if (_isLoading)
 {
@@ -226,13 +223,12 @@ edge [
 			{
 				builder.Append(@$"""{taskActivity.Name}"" [label=""<f0> {task.Name} |<f1> {taskActivity.Name} ");
 
-				if (taskActivity.ProcessDuration > 1)
-					builder.Append(@$"|<f2> {taskActivity.ProcessTime}/{taskActivity.ProcessDuration}""");
-				else
+				if(!taskActivity.IsActive)
 					builder.Append(@$"|<f2> {taskActivity.ProcessDuration}""");
 
 				if (taskActivity.IsActive)
 				{
+					builder.Append(@$"|<f2> {taskActivity.ProcessTime + 1}/{taskActivity.ProcessDuration}""");
 					builder.Append(@$", color=""green"", penwidth=2");
 				}
 

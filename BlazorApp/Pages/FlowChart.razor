@@ -20,7 +20,7 @@
 			Upload CSV File:
 		</label>
 		<br />
-		<InputFile OnChange="@LoadFiles"/>
+		<InputFile OnChange="@LoadFiles" accept=".csv"/>
 	</div>
 	<div class="control-section">
 		<button class="button" @onclick="StartAnimation" disabled=@(_runningState || _stepMode || !_chartLoaded)>Start</button>

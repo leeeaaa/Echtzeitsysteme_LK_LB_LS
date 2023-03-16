@@ -6,7 +6,7 @@
 @using Microsoft.Extensions.Logging
 @using System.Text;
 @using Task = System.Threading.Tasks.Task
-@using System.Diagnostics
+@using System.Diagnostics;
 @inject ILogger<FlowChart> Logger
 @inject IWebHostEnvironment Environment
 @inject IJSRuntime js
@@ -23,6 +23,7 @@
 		<InputFile OnChange="@LoadFiles" accept=".csv"/>
 	</div>
 	<div class="control-section">
+		<button class="button" @onclick="SaveFile" disabled=@(_runningState || _stepMode || !_chartLoaded)>Save Current State</button>
 		<button class="button" @onclick="StartAnimation" disabled=@(_runningState || _stepMode || !_chartLoaded)>Start</button>
 		<button class="button" @onclick="StopAnimation" disabled=@(!_runningState || _stepMode || !_chartLoaded)>Stop</button>
 		<button class="button" @onclick="StepAnimation" disabled=@(_runningState || _stepMode || !_chartLoaded)>Step</button>
@@ -37,7 +38,7 @@
 </div>
 
 <div class="content">
-	<div class="chart-area" @ref="_renderTo"></div>
+	<div id="chart" class="chart-area" @ref="_renderTo"></div>
 
 	<div class="info-container">
 		<div class="card">
@@ -279,6 +280,11 @@ edge [
 		Reset();
 	}
 
+	private async void SaveFile(){
+		var element = await js.InvokeAsync<string>("getElement");
+		Console.WriteLine(element);
+		await js.InvokeAsync<object>("saveFile", element);
+	}
 
 	private void Step()
 	{

@@ -57,6 +57,23 @@
 			graphviz.renderDot(model);
 			graphviz.fit(true);
 		}
+
+		function getElement() {
+			var idValue = document.getElementById("chart");
+			console.log(idValue.innerHTML.toString());
+			return idValue.innerHTML.toString();
+		}
+
+		function saveFile(Content) {
+			var link = document.createElement('a');
+			var date = new Date(Date.now())
+			link.download = "FlowChart" + date.getFullYear() + "-" + date.getMonth()
+				+ "-" + date.getDay() + "-" + date.getHours() + "-" + date.getMinutes() + "-" + date.getSeconds() + ".svg";
+			link.href = "data:text/plain;charset=utf-8," + encodeURIComponent(Content)
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+		}
 	</script>
 </body>
 </html>

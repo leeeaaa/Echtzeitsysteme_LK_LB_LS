@@ -50,6 +50,7 @@ html, body {
 
 .menu-bar {
     display: flex;
+    flex-wrap: wrap;
     background: #457B9D;
     padding-inline: 1rem;
     justify-content: space-between;
@@ -61,17 +62,12 @@ html, body {
         align-self: stretch;
     }
 
-.control-section {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.upload-area {
-    margin-block: 1rem;
-    order: -1;
-}
+    .control-section {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: center;
+    }
 
 @media screen and (max-width: 1000px) {
     .menu-bar {
@@ -103,19 +99,24 @@ html, body {
     border-radius: 5px;
     border-color: #778899;
     width: 100%;
-    block-size: fit-content;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+
 }
 
 
 .info-container {
     margin-block: 1rem;
     display: flex;
+    flex-wrap: wrap;
     flex-direction: column;
     gap: 1rem;
 }
 
 .list {
     display: flex;
+    flex-wrap: wrap;
     flex-direction: row;
 }
 
@@ -222,3 +223,20 @@ header {
     font-size: 40px;
     font-weight: bolder;
 }
+
+.upload-area {
+    margin-block: 1rem;
+    order: -1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+  
+.upload-area input[type="file"] {
+    position: absolute;
+    z-index: -1;
+    top: 10px;
+    left: 8px;
+    font-size: 17px;
+    color: #b8b8b8;
+  }

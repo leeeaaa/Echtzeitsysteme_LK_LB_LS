@@ -49,11 +49,11 @@
 					.graphviz();
 
 			let box = document.querySelector('.chart-area');
-			let width = box.clientWidth;
-			let margin = 4;
+			let width = "100%";
+			//let margin = 4;
 			console.log(width);
 
-			graphviz.width(width - margin);
+			graphviz.width(width);
 			graphviz.renderDot(model);
 			graphviz.fit(true);
 		}

@@ -26,7 +26,7 @@
 		<button class="button" @onclick="StartAnimation" disabled=@(_runningState || _stepMode || !_chartLoaded)>Start</button>
 		<button class="button" @onclick="StopAnimation" disabled=@(!_runningState || _stepMode || !_chartLoaded)>Stop</button>
 		<button class="button" @onclick="StepAnimation" disabled=@(_runningState || _stepMode || !_chartLoaded)>Step</button>
-		<button class="button" @onclick="Reset" disabled=@(_runningState || _stepMode || !_chartLoaded)>Reset</button>
+		<button class="button" @onclick="ResetDiagramState" disabled=@(_runningState || _stepMode || !_chartLoaded)>Reset</button>
 		<div class="animation-speed-control">
 			<input type="range" min="100" max="2000" step="10"
 			       value="@_timerInterval" @oninput="@((args) => ChangeTimerInterval(args.Value?.ToString()))"
@@ -36,39 +36,6 @@
 	</div>
 </div>
 
-<div class="content">
-	<div id="chart" class="chart-area" @ref="_renderTo"></div>
-
-	<div class="info-container">
-		<div class="card">
-			<p>Semaphores</p>
-			<div class="list">
-				@foreach (var semaphore in _diagramData.Semaphores)
-				{
-
-					<div class="list-item">
-						<p class="@(semaphore.CanDecrement() ? "activeSemaphore" : "")">@semaphore.Name: @semaphore.State</p>
-					</div>
-				}
-			</div>
-		</div>
-
-		<div class="card">
-			<p>Mutexes</p>
-			<div class="list">
-				@foreach (var mutex in _diagramData.Mutexes)
-				{
-					<div class="list-item">
-						<p class="@(!mutex.CanDecrement() ? "activeMutex" : "")">@mutex.Name: @mutex.State</p>
-					</div>
-				}
-			</div>
-		</div>
-		<div class="card">
-			<label>Time units passed: @_timeUnitsPassed</label>
-		</div>
-	</div>
-</div>
 
 @if (_isLoading)
 {
@@ -85,6 +52,43 @@ else
 				<li>@error</li>
 			}
 		</ul>
+	}
+
+	else
+	{
+		<div class="content" style="visibility: @(_chartLoaded ? "" : "hidden")">
+			<div id="chart" class="chart-area" @ref="_renderTo"></div>
+
+			<div class="info-container">
+				<div class="card">
+					<p>Semaphores</p>
+					<div class="list">
+						@foreach (var semaphore in _diagramData.Semaphores)
+						{
+
+							<div class="list-item">
+								<p class="@(semaphore.CanDecrement() ? "activeSemaphore" : "")">@semaphore.Name: @semaphore.State</p>
+							</div>
+						}
+					</div>
+				</div>
+
+				<div class="card">
+					<p>Mutexes</p>
+					<div class="list">
+						@foreach (var mutex in _diagramData.Mutexes)
+						{
+							<div class="list-item">
+								<p class="@(!mutex.CanDecrement() ? "activeMutex" : "")">@mutex.Name: @mutex.State</p>
+							</div>
+						}
+					</div>
+				</div>
+				<div class="card">
+					<label>Time units passed: @_timeUnitsPassed</label>
+				</div>
+			</div>
+		</div>
 	}
 }
 
@@ -103,7 +107,7 @@ else
 	private bool _shouldStop;
 	private ElementReference _renderTo;
 
-	private bool _chartLoaded { get; set; }
+	private bool _chartLoaded;
 
 	protected override void OnInitialized()
 	{
@@ -268,21 +272,19 @@ edge [
 
 				await using MemoryStream fs = new();
 				await file.OpenReadStream(MaxFileSize).CopyToAsync(fs);
-				
-
 
 				_diagramData = await CsvFileReaderService.ReadCsvFileToObjectAsync(fs);
+				_chartLoaded = true;
+
+				ResetDiagramState();
 			}
 			catch (Exception ex)
 			{
 				_errors.Add($"File: {file.Name} Error: {ex.Message}");
+				_chartLoaded = false;
 			}
 		}
-
 		_isLoading = false;
-		_chartLoaded = true;
-
-		Reset();
 	}
 
 	private async void SaveFile(){
@@ -355,7 +357,7 @@ edge [
 		_timer?.Change(Timeout.Infinite, _timerInterval);
 	}
 
-	private async void Reset()
+	private async void ResetDiagramState()
 	{
 		_timer?.Change(Timeout.Infinite, Timeout.Infinite);
 		_runningState = false;

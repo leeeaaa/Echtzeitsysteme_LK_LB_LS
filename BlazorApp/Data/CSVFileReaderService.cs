@@ -62,7 +62,6 @@ public class CsvFileReaderService
 		List<Activity> activities = new();
 
 
-
 		elements.FindAll(element => element.First() == "Task").ForEach(taskList => diagramData.Tasks.Add(CreateTaskFromList(taskList)));
 		elements.FindAll(element => element.First() == "Activity").ForEach(activityList =>
 		{

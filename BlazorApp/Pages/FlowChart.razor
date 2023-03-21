@@ -101,6 +101,7 @@ else
 	private bool _stepMode = false;
 	private int _animationState = 0;
 	private bool _shouldStop;
+	private ElementReference _renderTo;
 
 	private bool _chartLoaded { get; set; }
 
@@ -245,8 +246,6 @@ edge [
 		}
 	}
 
-	private ElementReference _renderTo;
-
 	private async System.Threading.Tasks.Task LoadFiles(InputFileChangeEventArgs e)
 	{
 		_isLoading = true;
@@ -262,8 +261,15 @@ edge [
 		{
 			try
 			{
+				if (!file.ContentType.Equals("application/vnd.ms-excel"))
+				{
+					throw new ArgumentException("The provided file is no a csv or Excel file.");
+				}
+
 				await using MemoryStream fs = new();
 				await file.OpenReadStream(MaxFileSize).CopyToAsync(fs);
+				
+
 
 				_diagramData = await CsvFileReaderService.ReadCsvFileToObjectAsync(fs);
 			}

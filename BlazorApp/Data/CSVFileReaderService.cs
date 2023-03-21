@@ -46,37 +46,37 @@ public class CsvFileReaderService
 				}
 			}
 
-
-			return ConvertCsvToObjects(elements);
+			return ConvertCsvDataToDiagramData(elements);
 		});
-
 	}
 
 	public static System.Threading.Tasks.Task<DiagramData> RestoreInitialState(DiagramData data)
 	{
-		return System.Threading.Tasks.Task.Run(() => ConvertCsvToObjects(data.CsvData));
+		return System.Threading.Tasks.Task.Run(() => ConvertCsvDataToDiagramData(data.CsvData));
 	}
 
-	private static DiagramData ConvertCsvToObjects(List<List<string>> elements)
+	private static DiagramData ConvertCsvDataToDiagramData(List<List<string>> elements)
 	{
-
 		var diagramData = new DiagramData();
 		diagramData.CsvData = elements;
 		List<Activity> activities = new();
 
+
+
 		elements.FindAll(element => element.First() == "Task").ForEach(taskList => diagramData.Tasks.Add(CreateTaskFromList(taskList)));
 		elements.FindAll(element => element.First() == "Activity").ForEach(activityList =>
 		{
-			var activity = CreateActivityFromList(activityList);
+			var activity = CreateActivityCsvData(activityList);
 			diagramData.Tasks.Find(task => task.Name == activityList[1])?.AddActivity(activity);
 			activities.Add(activity);
 		});
+
 		elements.FindAll(element => element.First() == "Semaphore").ForEach(semaphoreList =>
 		{
 			var existingSemaphore = diagramData.Semaphores.Find(semaphore => semaphore.Name == semaphoreList[1]);
 			if (existingSemaphore is null)
 			{
-				existingSemaphore = CreateSemaphoreFromList(semaphoreList);
+				existingSemaphore = CreateSemaphoreFromCsvData(semaphoreList);
 				diagramData.Semaphores.Add(existingSemaphore);
 			}
 			else
@@ -100,7 +100,7 @@ public class CsvFileReaderService
 
 		elements.FindAll(element => element.First() == "Mutex").ForEach(mutexList =>
 		{
-			var mutex = CreateMutexFromList(mutexList);
+			var mutex = CreateMutexFromCsvData(mutexList);
 			diagramData.Mutexes.Add(mutex);
 
 			for (int i = 2; i < mutexList.Count; i++)
@@ -136,14 +136,14 @@ public class CsvFileReaderService
 		return usedSeparator;
 	}
 
-	private static Activity CreateActivityFromList(List<string> activityItems)
+	private static Activity CreateActivityCsvData(List<string> activityItems)
 		=> new Activity(Int32.Parse(activityItems[3]), activityItems[2]);
 	private static Task CreateTaskFromList(List<string> taskItems)
 		=> new Task(taskItems[1]);
 
-	private static Semaphore CreateSemaphoreFromList(List<string> semaphoreItems)
+	private static Semaphore CreateSemaphoreFromCsvData(List<string> semaphoreItems)
 		=> new Semaphore(Int32.Parse(semaphoreItems[2]), semaphoreItems[1]);
 
-	private static Mutex CreateMutexFromList(List<string> mutexItems)
+	private static Mutex CreateMutexFromCsvData(List<string> mutexItems)
 		=> new Mutex(mutexItems[1]);
 }

@@ -274,9 +274,17 @@ edge [
 				await file.OpenReadStream(MaxFileSize).CopyToAsync(fs);
 
 				_diagramData = await CsvFileReaderService.ReadCsvFileToObjectAsync(fs);
-				_chartLoaded = true;
 
-				ResetDiagramState();
+				if (_diagramData.Errors.Count > 0)
+				{
+					_errors.AddRange(_diagramData.Errors);
+				}
+				else
+				{
+					_chartLoaded = true;
+					ResetDiagramState();
+				}
+
 			}
 			catch (Exception ex)
 			{

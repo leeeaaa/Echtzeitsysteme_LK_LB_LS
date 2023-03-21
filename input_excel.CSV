@@ -12,7 +12,7 @@ Activity;Task4;Activity4;1;
 Activity;Task5;Activity5-a;1;
 Activity;Task5;Activity5-b;1;
 Activity;Task6;Activity6;1;
-Activity;Task7;Activity7;1;
+Activity;Task7;Activity7;0;
 Mutex;m234;Activity2;Activity3;Activity4
 Semaphore;S51;1;Activity5-b;Activity1
 Semaphore;S12;0;Activity1;Activity2

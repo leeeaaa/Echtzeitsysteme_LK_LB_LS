@@ -4,6 +4,9 @@ using ExcelDataReader;
 using System.Text;
 using Microsoft.AspNetCore.Components.Forms;
 using System.Xml.Linq;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace BlazorApp.Data;
 
@@ -15,12 +18,14 @@ public struct DiagramData{
 		Semaphores = new();
 		Mutexes = new();
 		CsvData = new();
+		Errors = new();
 	}
 
 	public List<Task> Tasks { get; set; }
 	public List<Semaphore> Semaphores { get; set; }
 	public List<Mutex> Mutexes { get; set; }
 	public List<List<string>> CsvData { get; set; }
+	public List<string> Errors { get; set; }
 }
 
 public class CsvFileReaderService
@@ -62,11 +67,23 @@ public class CsvFileReaderService
 		List<Activity> activities = new();
 
 
-		elements.FindAll(element => element.First() == "Task").ForEach(taskList => diagramData.Tasks.Add(CreateTaskFromList(taskList)));
+		elements.FindAll(element => element.First() == "Task").ForEach(taskList => diagramData.Tasks.Add(CreateTaskFromList(taskList, diagramData.Errors)));
+
+
 		elements.FindAll(element => element.First() == "Activity").ForEach(activityList =>
 		{
-			var activity = CreateActivityCsvData(activityList);
-			diagramData.Tasks.Find(task => task.Name == activityList[1])?.AddActivity(activity);
+			var activity = CreateActivityCsvData(activityList, diagramData.Errors);
+			var task = diagramData.Tasks.Find(task => task.Name == activityList[1]);
+
+			if (task is null)
+			{
+				diagramData.Errors.Add($"Activity '{activity.Name}' references non existing task '{activityList[1]}'");
+			}
+			else
+			{
+				task.AddActivity(activity);
+			}
+
 			activities.Add(activity);
 		});
 
@@ -75,7 +92,7 @@ public class CsvFileReaderService
 			var existingSemaphore = diagramData.Semaphores.Find(semaphore => semaphore.Name == semaphoreList[1]);
 			if (existingSemaphore is null)
 			{
-				existingSemaphore = CreateSemaphoreFromCsvData(semaphoreList);
+				existingSemaphore = CreateSemaphoreFromCsvData(semaphoreList, diagramData.Errors);
 				diagramData.Semaphores.Add(existingSemaphore);
 			}
 			else
@@ -84,10 +101,24 @@ public class CsvFileReaderService
 			}
 
 			var outputActivity = activities.Find(activity => activity.Name == semaphoreList[3]);
-			if(outputActivity?.Outputs.Find(output => output.Name == existingSemaphore.Name) is null) outputActivity?.AddOutput(existingSemaphore);
+			if (outputActivity is null)
+			{
+				diagramData.Errors.Add($"Semaphore '{existingSemaphore.Name}' references non existing activity '{semaphoreList[3]}'");
+			}
+			else
+			{
+				if (outputActivity.Outputs.Find(output => output.Name == existingSemaphore.Name) is null) outputActivity.AddOutput(existingSemaphore);
+			}
 
 			var inputActivity = activities.Find(activity => activity.Name == semaphoreList[4]);
-			if(inputActivity?.Inputs.Find(input => input.Name == existingSemaphore.Name) is null) inputActivity?.AddInput(existingSemaphore);
+			if (inputActivity is null)
+			{
+				diagramData.Errors.Add($"Semaphore '{existingSemaphore.Name}' references non existing activity '{semaphoreList[4]}'");
+			}
+			else
+			{
+				if (inputActivity.Inputs.Find(input => input.Name == existingSemaphore.Name) is null) inputActivity.AddInput(existingSemaphore);
+			}
 
 			if (inputActivity != null && outputActivity != null)
 			{
@@ -99,14 +130,22 @@ public class CsvFileReaderService
 
 		elements.FindAll(element => element.First() == "Mutex").ForEach(mutexList =>
 		{
-			var mutex = CreateMutexFromCsvData(mutexList);
+			var mutex = CreateMutexFromCsvData(mutexList, diagramData.Errors);
 			diagramData.Mutexes.Add(mutex);
 
 			for (int i = 2; i < mutexList.Count; i++)
 			{
 				var activity = activities.Find(activity => activity.Name == mutexList[i]);
-				activity?.AddInput(mutex);
-				activity?.AddOutput(mutex);
+
+				if (activity is null)
+				{
+					diagramData.Errors.Add($"Mutex '{mutex.Name}' references non existing activity '{mutexList[i]}'");
+				}
+				else
+				{
+					activity.AddInput(mutex);
+					activity.AddOutput(mutex);
+				}
 			}
 		});
 		return diagramData;
@@ -135,14 +174,61 @@ public class CsvFileReaderService
 		return usedSeparator;
 	}
 
-	private static Activity CreateActivityCsvData(List<string> activityItems)
-		=> new Activity(Int32.Parse(activityItems[3]), activityItems[2]);
-	private static Task CreateTaskFromList(List<string> taskItems)
-		=> new Task(taskItems[1]);
+	private static Activity CreateActivityCsvData(List<string> activityItems, List<string> errors)
+	{
+		if (activityItems[2] == "")
+			errors.Add("No name specified for activity!");
+		var name = activityItems[2];
 
-	private static Semaphore CreateSemaphoreFromCsvData(List<string> semaphoreItems)
-		=> new Semaphore(Int32.Parse(semaphoreItems[2]), semaphoreItems[1]);
 
-	private static Mutex CreateMutexFromCsvData(List<string> mutexItems)
-		=> new Mutex(mutexItems[1]);
+		var processDuration = 0;
+		if (!Int32.TryParse(activityItems[3], out processDuration))
+		{
+			errors.Add($"No duration specified for activity '{name}'!");
+		}
+		else
+		{
+			if (processDuration == 0)
+				errors.Add($"Process duration on activity '{name}' can't be 0!");
+		}
+
+		return new Activity(processDuration, name);
+	}
+
+	private static Task CreateTaskFromList(List<string> taskItems, List<string> errors)
+	{
+		if (taskItems[1] == "")
+			errors.Add("No name specified for task!");
+
+		return new Task(taskItems[1]);
+	}
+
+	private static Semaphore CreateSemaphoreFromCsvData(List<string> semaphoreItems, List<string> errors)
+	{
+		if (semaphoreItems[1] == "")
+			errors.Add("No name specified for semaphore!");
+
+		var name = semaphoreItems[1];
+
+		var state = 0;
+		if (!Int32.TryParse(semaphoreItems[2], out state))
+			errors.Add($"'{semaphoreItems[2]}' is no valid state for semaphore '{name}'!");
+		else
+		{
+			if(state < 0)
+				errors.Add($"State of semaphore '{name}' can't be below 0!");
+		}
+		
+		return new Semaphore(state, name);
+	}
+
+	private static Mutex CreateMutexFromCsvData(List<string> mutexItems, List<string> errors)
+	{
+		if (mutexItems[1] == "")
+			errors.Add("No name specified for mutex!");
+
+		var name = mutexItems[1];
+		return new Mutex(name);
+	}
+
 }

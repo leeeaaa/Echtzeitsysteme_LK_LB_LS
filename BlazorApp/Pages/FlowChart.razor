@@ -265,9 +265,9 @@ edge [
 		{
 			try
 			{
-				if (!file.ContentType.Equals("application/vnd.ms-excel"))
+				if (!(file.ContentType.Equals("application/vnd.ms-excel") || file.ContentType.Equals("text/csv")))
 				{
-					throw new ArgumentException("The provided file is no a csv or Excel file.");
+					throw new ArgumentException("The provided file is not a .csv or Excel file.");
 				}
 
 				await using MemoryStream fs = new();

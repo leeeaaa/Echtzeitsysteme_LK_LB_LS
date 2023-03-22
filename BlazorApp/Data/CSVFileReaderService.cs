@@ -184,7 +184,7 @@ public class CsvFileReaderService
 		var processDuration = 0;
 		if (!Int32.TryParse(activityItems[3], out processDuration))
 		{
-			errors.Add($"No duration specified for activity '{name}'!");
+			errors.Add($"'{activityItems[3]}' is no valid duration for activity '{name}'!");
 		}
 		else
 		{

@@ -45,13 +45,14 @@ else
 {
 	@if (_errors.Count > 0)
 	{
-		<h2>Errors</h2>
-		<ul class="text-danger">
 			@foreach (var error in _errors)
 			{
-				<li>@error</li>
+				<div id="errmsg" class="alert alert-danger" role="alert">
+					Ups es ist folgender Fehler aufgetreten: @error <br>
+					<a href="https://bit.ly/3BlS71b" class="alert-link">Hier gehts zur Lösung aller deiner Fehler</a>.
+				</div>
 			}
-		</ul>
+
 	}
 
 	else

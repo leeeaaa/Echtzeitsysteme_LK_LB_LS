@@ -176,13 +176,13 @@ public class CsvFileReaderService
 
 	private static Activity CreateActivityCsvData(List<string> activityItems, List<string> errors)
 	{
-		if (activityItems[2] == "")
+		if (activityItems.Count >= 2 && activityItems[2] == "")
 			errors.Add("No name specified for activity!");
 		var name = activityItems[2];
 
 
 		var processDuration = 0;
-		if (!Int32.TryParse(activityItems[3], out processDuration))
+		if (activityItems.Count >= 3 && !Int32.TryParse(activityItems[3], out processDuration))
 		{
 			errors.Add($"'{activityItems[3]}' is no valid duration for activity '{name}'!");
 		}
@@ -197,21 +197,26 @@ public class CsvFileReaderService
 
 	private static Task CreateTaskFromList(List<string> taskItems, List<string> errors)
 	{
-		if (taskItems[1] == "")
+		var taskName = "";
+		if (taskItems.Count >=1 && taskItems[1] == "")
 			errors.Add("No name specified for task!");
+		else
+		{
+			taskName = taskItems[1];
+		}
 
-		return new Task(taskItems[1]);
+		return new Task(taskName);
 	}
 
 	private static Semaphore CreateSemaphoreFromCsvData(List<string> semaphoreItems, List<string> errors)
 	{
-		if (semaphoreItems[1] == "")
+		if (semaphoreItems.Count >= 1 && semaphoreItems[1] == "")
 			errors.Add("No name specified for semaphore!");
 
 		var name = semaphoreItems[1];
 
 		var state = 0;
-		if (!Int32.TryParse(semaphoreItems[2], out state))
+		if (semaphoreItems.Count >= 2 && !Int32.TryParse(semaphoreItems[2], out state))
 			errors.Add($"'{semaphoreItems[2]}' is no valid state for semaphore '{name}'!");
 		else
 		{
@@ -224,10 +229,15 @@ public class CsvFileReaderService
 
 	private static Mutex CreateMutexFromCsvData(List<string> mutexItems, List<string> errors)
 	{
-		if (mutexItems[1] == "")
-			errors.Add("No name specified for mutex!");
+		var name = "";
 
-		var name = mutexItems[1];
+		if (mutexItems.Count >= 1 && mutexItems[1] == "")
+			errors.Add("No name specified for mutex!");
+		else
+		{
+			name = mutexItems[1];
+		}
+
 		return new Mutex(name);
 	}
 

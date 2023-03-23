@@ -70,7 +70,7 @@ public class Activity
 		if (ProcessTime > 0 || CanProcess) ProcessTime++;
 		if (ProcessTime == ProcessDuration)
 		{
-			Outputs.ForEach(output => { output.Increment();
+			Outputs.ForEach(output => { output.Increment(Name);
 			Console.WriteLine(output.Name); });
 			
 			ProcessTime = 0;

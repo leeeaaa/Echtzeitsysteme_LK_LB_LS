@@ -172,14 +172,14 @@ html, body {
   width: auto;
 }
 
-.button:hover,
-.button:focus {
+.button:hover:enabled,
+.button:focus:enabled {
   border-color: rgba(0, 0, 0, 0.15);
   box-shadow: rgba(0, 0, 0, 0.1) 0 4px 12px;
   color: rgba(0, 0, 0, 0.65);
 }
 
-.button:hover {
+.button:hover:enabled {
   transform: translateY(-1px);
 }
 
@@ -196,6 +196,7 @@ html, body {
     box-shadow: rgba(0, 0, 0, 0.1) 0 4px 12px;
     color: rgba(0, 0, 0, 0.65);
     background-color: gray;
+    pointer-events: none;
 }
 
 

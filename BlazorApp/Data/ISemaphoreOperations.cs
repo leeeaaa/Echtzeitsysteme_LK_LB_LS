@@ -3,7 +3,7 @@ namespace BlazorApp.Data;
 public interface ISemaphoreOperations
 {
 
-    void Increment();
+    void Increment(string activityName = "");
 
     void Decrement();
 

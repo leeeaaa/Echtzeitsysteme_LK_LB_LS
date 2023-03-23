@@ -5,8 +5,6 @@
 @using Microsoft.AspNetCore.Hosting
 @using Microsoft.Extensions.Logging
 @using System.Text;
-@using Task = System.Threading.Tasks.Task
-@using System.Diagnostics;
 @inject ILogger<FlowChart> Logger
 @inject IWebHostEnvironment Environment
 @inject IJSRuntime js
@@ -17,20 +15,20 @@
 <div class="menu-bar">
 	<div class="upload-area">
 		<label class="button" for="upload">
-			Upload CSV File:
+			Upload CSV File
 		</label>
 		<InputFile id="upload" OnChange="@LoadFiles" accept=".csv"/>
 	</div>
 	<div class="control-section">
-		<button class="button" @onclick="SaveFile" disabled=@(_runningState || _stepMode || !_chartLoaded)>Save Current State</button>
-		<button class="button" @onclick="StartAnimation" disabled=@(_runningState || _stepMode || !_chartLoaded)>Start</button>
-		<button class="button" @onclick="StopAnimation" disabled=@(!_runningState || _stepMode || !_chartLoaded)>Stop</button>
-		<button class="button" @onclick="StepAnimation" disabled=@(_runningState || _stepMode || !_chartLoaded)>Step</button>
-		<button class="button" @onclick="ResetDiagramState" disabled=@(_runningState || _stepMode || !_chartLoaded)>Reset</button>
+		<button class="button" @onclick="SaveFile" disabled=@(_runningState || _stepMode || !_chartLoaded || _errors.Count > 0)>Save Current State</button>
+		<button class="button" @onclick="StartAnimation" disabled=@(_runningState || _stepMode || !_chartLoaded || _errors.Count > 0)>Start</button>
+		<button class="button" @onclick="StopAnimation" disabled=@(!_runningState || _stepMode || !_chartLoaded || _errors.Count > 0)>Stop</button>
+		<button class="button" @onclick="StepAnimation" disabled=@(_runningState || _stepMode || !_chartLoaded || _errors.Count > 0)>Step</button>
+		<button class="button" @onclick="ResetDiagramState" disabled=@(_runningState || _stepMode || !_chartLoaded || _errors.Count > 0)>Reset</button>
 		<div class="animation-speed-control">
 			<input type="range" min="100" max="2000" step="10"
 			       value="@_timerInterval" @oninput="@((args) => ChangeTimerInterval(args.Value?.ToString()))"
-			       disabled=@_runningState />
+				   disabled=@(_runningState || _errors.Count > 0) />
 			<label>Time interval: @_timerInterval ms</label>
 		</div>
 	</div>
@@ -107,6 +105,7 @@ else
 	private int _animationState = 0;
 	private bool _shouldStop;
 	private ElementReference _renderTo;
+	private static Random _random = new Random();
 
 	private bool _chartLoaded;
 
@@ -161,7 +160,7 @@ edge [
 		foreach (Data.Mutex mutex in _diagramData.Mutexes)
 		{
 			if (mutex.CanDecrement())
-				builder.AppendLine(@$"""{mutex.Name}"" [label=""{mutex.Name}"",shape=hexagon];");
+				builder.AppendLine(@$"""{mutex.Name}"" [label=""{mutex.Name}"",shape=hexagon, color=""green"",  penwidth=2];");
 			else
 				builder.AppendLine(@$"""{mutex.Name}"" [label=""{mutex.Name}"",shape=hexagon, color=""red"", penwidth=2];");
 
@@ -178,18 +177,20 @@ edge [
 
 	private void AddSemaphores(StringBuilder builder)
 	{
-		var tempNumber = 0;
+		
 		foreach (Data.Semaphore semaphore in _diagramData.Semaphores)
 		{
+			
 			if (semaphore.Inputs.Count > 1 || semaphore.Outputs.Count > 1)
 			{
-				builder.AppendLine(@$"""{tempNumber}"" [shape=point];");
+				var tempName = RandomString(10);
+				builder.AppendLine(@$"""{tempName}"" [shape=point];");
 
 				foreach (var input in semaphore.Inputs)
 				{
-					builder.Append(@$"""{input.Name}""->""{tempNumber}"" [label=""{semaphore.Name}"", arrowhead=""none""");
+					builder.Append(@$"""{input.Name}""->""{tempName}"" [label=""{semaphore.Name}"", arrowhead=""none""");
 
-					if (semaphore.CanDecrement())
+					if (semaphore.CanDecrement() && semaphore.LastIncrementActivity.Contains(input.Name))
 						builder.Append(@", color=""green"", penwidth=2");
 
 					builder.AppendLine("];");
@@ -197,7 +198,7 @@ edge [
 
 				foreach (var output in semaphore.Outputs)
 				{
-					builder.Append(@$"""{tempNumber}""->""{output.Name}"" [label=""{semaphore.Name}""");
+					builder.Append(@$"""{tempName}""->""{output.Name}"" [label=""{semaphore.Name}""");
 
 					if (semaphore.IsActivitySemaphore)
 						builder.Append(@", arrowhead=""onormal""");
@@ -209,8 +210,6 @@ edge [
 
 					builder.AppendLine("];");
 				}
-
-				tempNumber++;
 			}
 			else
 			{
@@ -380,5 +379,12 @@ edge [
 	public void Dispose()
 	{
 		_timer?.Dispose();
+	}
+
+	public static string RandomString(int length)
+	{
+		const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+		return new string(Enumerable.Repeat(chars, length)
+			.Select(s => s[_random.Next(s.Length)]).ToArray());
 	}
 }

@@ -24,14 +24,14 @@ public class Mutex : ISemaphoreOperations
         return State > 0;
     }
 
+    public void Increment(string activityName = "")
+    {
+		State++;
+	}
+
     public void Decrement()
     {
         State--;
         Debug.Assert(State >= 0);
-    }
-
-    public void Increment()
-    {
-        State++;
     }
 }

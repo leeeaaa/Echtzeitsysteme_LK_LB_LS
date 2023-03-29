@@ -1,0 +1,13 @@
+<Task>;<TaskName>;;;;
+Task;Task1;;;;
+;;;;;
+;;;;;
+<Activity>;<TaskName>;<ActivityName>;<ActivityDuration>;;
+;;;;;
+;;;;;
+;;;;;
+<Mutex>;<MutexName>;<Activity1>;<Activity2>;<Activity3>;<…>
+;;;;;
+;;;;;
+;;;;;
+<Semaphore>;<SemaphoreName>;<SemaphoreState>;<Activity1>;<Activity2>;

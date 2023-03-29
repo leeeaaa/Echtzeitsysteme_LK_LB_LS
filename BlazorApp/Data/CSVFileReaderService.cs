@@ -100,31 +100,39 @@ public class CsvFileReaderService
 				existingSemaphore.IncrementNumberInputs();
 			}
 
-			var outputActivity = activities.Find(activity => activity.Name == semaphoreList[3]);
-			if (outputActivity is null)
-			{
-				diagramData.Errors.Add($"Semaphore '{existingSemaphore.Name}' references non existing activity '{semaphoreList[3]}'");
-			}
+			if(semaphoreList.Count <= 3)
+				diagramData.Errors.Add($"Semaphore '{existingSemaphore.Name}': Please specify a output activity!");
+
+			else if (semaphoreList.Count <= 4)
+				diagramData.Errors.Add($"Semaphore '{existingSemaphore.Name}': Please specify a input activity!");
+
 			else
 			{
-				if (outputActivity.Outputs.Find(output => output.Name == existingSemaphore.Name) is null) outputActivity.AddOutput(existingSemaphore);
-			}
+				var outputActivity = activities.Find(activity => activity.Name == semaphoreList[3]);
+				if (outputActivity is null)
+				{
+					diagramData.Errors.Add($"Semaphore '{existingSemaphore.Name}' references non existing activity '{semaphoreList[3]}'");
+				}
+				else
+				{
+					if (outputActivity.Outputs.Find(output => output.Name == existingSemaphore.Name) is null) outputActivity.AddOutput(existingSemaphore);
+				}
+				var inputActivity = activities.Find(activity => activity.Name == semaphoreList[4]);
+				if (inputActivity is null)
+				{
+					diagramData.Errors.Add($"Semaphore '{existingSemaphore.Name}' references non existing activity '{semaphoreList[4]}'");
+				}
+				else
+				{
+					if (inputActivity.Inputs.Find(input => input.Name == existingSemaphore.Name) is null) inputActivity.AddInput(existingSemaphore);
+				}
 
-			var inputActivity = activities.Find(activity => activity.Name == semaphoreList[4]);
-			if (inputActivity is null)
-			{
-				diagramData.Errors.Add($"Semaphore '{existingSemaphore.Name}' references non existing activity '{semaphoreList[4]}'");
-			}
-			else
-			{
-				if (inputActivity.Inputs.Find(input => input.Name == existingSemaphore.Name) is null) inputActivity.AddInput(existingSemaphore);
-			}
-
-			if (inputActivity != null && outputActivity != null)
-			{
-				if (diagramData.Tasks.Find(task =>
-					    task.Activities.Contains(inputActivity) && task.Activities.Contains(outputActivity)) !=
-				    null) existingSemaphore.SetActivitySemaphore();
+				if (inputActivity != null && outputActivity != null)
+				{
+					if (diagramData.Tasks.Find(task =>
+						    task.Activities.Contains(inputActivity) && task.Activities.Contains(outputActivity)) !=
+					    null) existingSemaphore.SetActivitySemaphore();
+				}
 			}
 		});
 
@@ -135,19 +143,33 @@ public class CsvFileReaderService
 
 			for (int i = 2; i < mutexList.Count; i++)
 			{
-				var activity = activities.Find(activity => activity.Name == mutexList[i]);
+				var activityName = mutexList[i];
+				if (activityName != "")
+				{
+					var activity = activities.Find(activity => activity.Name == activityName);
 
-				if (activity is null)
-				{
-					diagramData.Errors.Add($"Mutex '{mutex.Name}' references non existing activity '{mutexList[i]}'");
-				}
-				else
-				{
-					activity.AddInput(mutex);
-					activity.AddOutput(mutex);
+					if (activity is null)
+					{
+						diagramData.Errors.Add($"Mutex '{mutex.Name}' references non existing activity '{mutexList[i]}'!");
+					}
+					else
+					{
+						activity.AddInput(mutex);
+						activity.AddOutput(mutex);
+					}
 				}
 			}
 		});
+
+		if(diagramData.Tasks.Count == 0)
+			diagramData.Errors.Add("No diagram to display!");
+
+		diagramData.Tasks.ForEach(task =>
+		{
+			if(task.Activities.Count == 0)
+				diagramData.Errors.Add($"Task '{task.Name}' has no activity!");
+		});
+
 		return diagramData;
 	}
 

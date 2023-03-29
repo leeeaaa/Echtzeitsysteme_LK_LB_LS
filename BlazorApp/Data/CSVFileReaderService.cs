@@ -10,7 +10,8 @@ using System.Diagnostics;
 
 namespace BlazorApp.Data;
 
-public struct DiagramData{
+public struct DiagramData
+{
 
 	public DiagramData()
 	{
@@ -67,12 +68,13 @@ public class CsvFileReaderService
 		List<Activity> activities = new();
 
 
-		elements.FindAll(element => element.First() == "Task").ForEach(taskList => diagramData.Tasks.Add(CreateTaskFromList(taskList, diagramData.Errors)));
+		elements.FindAll(element => element.First() == "Task").ForEach(taskList => diagramData.Tasks.Add(CreateTaskFromCsvData(taskList, diagramData.Errors)));
 
 
 		elements.FindAll(element => element.First() == "Activity").ForEach(activityList =>
 		{
-			var activity = CreateActivityCsvData(activityList, diagramData.Errors);
+			var activity = CreateActivityFromCsvData(activityList, diagramData.Errors);
+
 			var task = diagramData.Tasks.Find(task => task.Name == activityList[1]);
 
 			if (task is null)
@@ -90,50 +92,57 @@ public class CsvFileReaderService
 		elements.FindAll(element => element.First() == "Semaphore").ForEach(semaphoreList =>
 		{
 			var existingSemaphore = diagramData.Semaphores.Find(semaphore => semaphore.Name == semaphoreList[1]);
+
 			if (existingSemaphore is null)
 			{
 				existingSemaphore = CreateSemaphoreFromCsvData(semaphoreList, diagramData.Errors);
 				diagramData.Semaphores.Add(existingSemaphore);
 			}
-			else
+
+			if (semaphoreList.Count <= 3)
 			{
-				existingSemaphore.IncrementNumberInputs();
+				diagramData.Errors.Add($"Semaphore '{existingSemaphore.Name}': Please specify an input and output activity!");
+				return;
 			}
 
-			if(semaphoreList.Count <= 3)
-				diagramData.Errors.Add($"Semaphore '{existingSemaphore.Name}': Please specify a output activity!");
-
-			else if (semaphoreList.Count <= 4)
-				diagramData.Errors.Add($"Semaphore '{existingSemaphore.Name}': Please specify a input activity!");
-
-			else
+			if (semaphoreList.Count <= 4)
 			{
-				var outputActivity = activities.Find(activity => activity.Name == semaphoreList[3]);
-				if (outputActivity is null)
-				{
-					diagramData.Errors.Add($"Semaphore '{existingSemaphore.Name}' references non existing activity '{semaphoreList[3]}'");
-				}
-				else
-				{
-					if (outputActivity.Outputs.Find(output => output.Name == existingSemaphore.Name) is null) outputActivity.AddOutput(existingSemaphore);
-				}
-				var inputActivity = activities.Find(activity => activity.Name == semaphoreList[4]);
-				if (inputActivity is null)
-				{
-					diagramData.Errors.Add($"Semaphore '{existingSemaphore.Name}' references non existing activity '{semaphoreList[4]}'");
-				}
-				else
-				{
-					if (inputActivity.Inputs.Find(input => input.Name == existingSemaphore.Name) is null) inputActivity.AddInput(existingSemaphore);
-				}
-
-				if (inputActivity != null && outputActivity != null)
-				{
-					if (diagramData.Tasks.Find(task =>
-						    task.Activities.Contains(inputActivity) && task.Activities.Contains(outputActivity)) !=
-					    null) existingSemaphore.SetActivitySemaphore();
-				}
+				diagramData.Errors.Add($"Semaphore '{existingSemaphore.Name}': Please specify an input activity!");
+				return;
 			}
+
+			var inputActivity = activities.Find(activity => activity.Name == semaphoreList[3]);
+			var outputActivity = activities.Find(activity => activity.Name == semaphoreList[4]);
+
+			if (outputActivity is null)
+			{
+				diagramData.Errors.Add($"Semaphore '{existingSemaphore.Name}' references non existing activity '{semaphoreList[3]}'!");
+				return;
+			}
+
+			if (inputActivity is null)
+			{
+				diagramData.Errors.Add($"Semaphore '{existingSemaphore.Name}' references non existing activity '{semaphoreList[4]}'!");
+				return;
+			}
+
+			if (existingSemaphore.Inputs.Count > 0 && existingSemaphore.Outputs.Count > 0 && existingSemaphore.Inputs.All(activity => activity.Name != inputActivity.Name) &&
+				existingSemaphore.Outputs.All(activity => activity.Name != outputActivity.Name))
+			{
+				diagramData.Errors.Add($"Semaphore '{existingSemaphore.Name}' is used as an Or-Semaphore but hast different inputs AND outputs!");
+				return;
+			}
+
+			if (outputActivity.Inputs.Find(output => output.Name == existingSemaphore.Name) is null)
+				outputActivity.AddInput(existingSemaphore);
+
+			if (inputActivity.Outputs.Find(input => input.Name == existingSemaphore.Name) is null)
+				inputActivity.AddOutput(existingSemaphore);
+
+			if (diagramData.Tasks.Find(task => task.Activities.Contains(inputActivity) && task.Activities.Contains(outputActivity)) != null)
+				existingSemaphore.SetActivitySemaphore();
+
+
 		});
 
 		elements.FindAll(element => element.First() == "Mutex").ForEach(mutexList =>
@@ -161,12 +170,12 @@ public class CsvFileReaderService
 			}
 		});
 
-		if(diagramData.Tasks.Count == 0)
+		if (diagramData.Tasks.Count == 0)
 			diagramData.Errors.Add("No diagram to display!");
 
 		diagramData.Tasks.ForEach(task =>
 		{
-			if(task.Activities.Count == 0)
+			if (task.Activities.Count == 0)
 				diagramData.Errors.Add($"Task '{task.Name}' has no activity!");
 		});
 
@@ -176,9 +185,9 @@ public class CsvFileReaderService
 	private static char GetSeparator(System.IO.Stream iStream)
 	{
 		char usedSeparator = ',';
-		List<char> separators = new List<char>{',', ';'};
+		List<char> separators = new List<char> { ',', ';' };
 		iStream.Seek(0, SeekOrigin.Begin);
-		using var reader = new StreamReader(iStream, leaveOpen:true);
+		using var reader = new StreamReader(iStream, leaveOpen: true);
 		var line1 = reader.ReadLine();
 		var line2 = reader.ReadLine();
 		foreach (var separator in separators)
@@ -196,7 +205,7 @@ public class CsvFileReaderService
 		return usedSeparator;
 	}
 
-	private static Activity CreateActivityCsvData(List<string> activityItems, List<string> errors)
+	private static Activity CreateActivityFromCsvData(List<string> activityItems, List<string> errors)
 	{
 		if (activityItems.Count >= 2 && activityItems[2] == "")
 			errors.Add("No name specified for activity!");
@@ -217,10 +226,10 @@ public class CsvFileReaderService
 		return new Activity(processDuration, name);
 	}
 
-	private static Task CreateTaskFromList(List<string> taskItems, List<string> errors)
+	private static Task CreateTaskFromCsvData(List<string> taskItems, List<string> errors)
 	{
 		var taskName = "";
-		if (taskItems.Count >=1 && taskItems[1] == "")
+		if (taskItems.Count >= 1 && taskItems[1] == "")
 			errors.Add("No name specified for task!");
 		else
 		{
@@ -242,10 +251,10 @@ public class CsvFileReaderService
 			errors.Add($"'{semaphoreItems[2]}' is no valid state for semaphore '{name}'!");
 		else
 		{
-			if(state < 0)
+			if (state < 0)
 				errors.Add($"State of semaphore '{name}' can't be below 0!");
 		}
-		
+
 		return new Semaphore(state, name);
 	}
 

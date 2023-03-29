@@ -17,25 +17,19 @@ public class Semaphore : ISemaphoreOperations
         private set;
     }
 
-    public int NumberInputs {
-        get;
-        private set;
-    }
+
 	public List<Activity> Inputs { get; set; } = new List<Activity>();
 	public List<Activity> Outputs { get; set; } = new List<Activity>();
 
 	public Queue<String> LastIncrementActivity { get; set; } = new();
 
-    public Semaphore(int state, string name) : this(state, false, 1, name){}
+    public Semaphore(int state, string name) : this(state, false, name){}
 
-    public Semaphore(int state, bool isActivitySemaphore, int numberInputs, string name){
+    public Semaphore(int state, bool isActivitySemaphore, string name){
         State = state;
         IsActivitySemaphore = isActivitySemaphore;
-        NumberInputs = numberInputs;
         Name = name;
     }
-
-    public void IncrementNumberInputs() => NumberInputs++;
 
     public void SetActivitySemaphore() => IsActivitySemaphore = true;
 
